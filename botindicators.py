@@ -1,8 +1,15 @@
 import numpy as np
+from botgraph import BotGraph
 
 class BotIndicators(object):
     def __init__(self):
-         pass
+        self.currentResistance = 0.018
+        self.localMax = []
+        self.dataPoints = []
+        self.grapher = BotGraph()
+        
+    def graphIndicators(self):
+        self.grapher.outputGraph(self.dataPoints)
 
     def movingAverage(self, dataPoints, period):
         if (len(dataPoints) > 1):
@@ -43,3 +50,22 @@ class BotIndicators(object):
         else:
             return 50 # output a neutral amount until enough prices in list
 
+    def doDataPoints(self, currentPrice, currentDate):
+        
+        self.dataPoints.append({'date':currentDate, 'price': str(currentPrice), 'trend': str(self.currentResistance), 'label': 'null', 'desc': 'null'})        
+        
+        if ( (len(self.dataPoints) > 2) and (self.dataPoints[-2]['price'] > self.dataPoints[-1]['price']) and (self.dataPoints[-2]['price'] > self.dataPoints[-3]['price']) ):
+            self.dataPoints[-2]['label'] = "'MAX'"
+            self.dataPoints[-2]['desc'] = "'This is a local maximum'"
+            
+            numberOfSimilarLocalMaxes = 0
+            for oldMax in self.localMax:
+                if ( (float(oldMax) > (float(self.dataPoints[-2]['price']) - .0001) ) and (float(oldMax) < (float(self.dataPoints[-2]['price']) + .0001) ) ):
+                    numberOfSimilarLocalMaxes = numberOfSimilarLocalMaxes + 1
+
+            if (numberOfSimilarLocalMaxes > 2):
+                self.currentResistance = self.dataPoints[-2]['price']
+                self.dataPoints[-2]['trend'] = self.dataPoints[-2]['price']
+                self.dataPoints[-1]['trend'] = self.dataPoints[-2]['price']
+
+            self.localMax.append(self.dataPoints[-2]['price'])

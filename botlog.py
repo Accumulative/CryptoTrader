@@ -1,11 +1,15 @@
-class BotLog(object):
-	def __init__(self):
-		pass
+import os
+import datetime
 
-	def log(self, message):
-		print(message)
-  
-#    output = open("output.html",'w')
-#    output.truncate()
-#    output.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotationText'});data.addColumn('number', 'trend');data.addRows([""")    
-#    
+class BotLog(object):
+    def __init__(self):
+        folder = "Logs/" + datetime.datetime.now().strftime('%Y%m%d')
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        self.destination = folder + "/output.txt"
+        pass
+
+    def log(self, m):
+        with open(self.destination, "a") as text_file:
+            print(m, file=text_file)
+        print(m)
