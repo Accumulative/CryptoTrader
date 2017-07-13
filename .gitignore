@@ -47,4 +47,6 @@ Temporary Items
 .apdisk
 
 __pycache__/*
-output.html
+*.html
+Logs/*
+Data/*

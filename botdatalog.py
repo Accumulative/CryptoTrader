@@ -1,8 +1,8 @@
 import os
 
 class BotDataLog(object):
-    def __init__(self, startDate, endDate):
-        self.destination = "Data/" + str(startDate) + "_" + str(endDate) + ".txt"
+    def __init__(self, pair, startDate, endDate):
+        self.destination = "Data/"+pair+"_"+ str(startDate) + "_" + str(endDate) + ".txt"
         self.write = (False if os.path.exists(self.destination) else True)
   
     def logPoint(self, point):
