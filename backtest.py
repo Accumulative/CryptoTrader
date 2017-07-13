@@ -1,18 +1,23 @@
 import sys, getopt
-
+import calendar
 from botchart import BotChart
 from botstrategy import BotStrategy
 from botlog import BotLog
 from botdatalog import BotDataLog
 from createindex import CreateIndex
+import time
+import datetime
+
+def dt(u): return datetime.datetime.utcfromtimestamp(u)
+def ut(d): return calendar.timegm(d.timetuple())
 
 def main(argv):
     period = 300
     pair = "BTC_XMR"
-    startTime = 1491048000
-    endTime = 1491091200
+    startTime = ""
+    endTime = ""
     totalBalance = 5000
-    file = ""#Data/0
+    liveTrading = False    
     
     output = BotLog()
     output.log("------------STARTING BACKTESTER------------")
@@ -42,21 +47,39 @@ def main(argv):
         elif opt in ("-b"):
             totalBalance = int(arg)
     
-    
-    dataoutput = BotDataLog(pair, startTime, endTime)   
-    if file != "":
-        pass
+    if startTime == "" and endTime == "":
+        # Using real
+        liveTrading = True
+    elif (startTime == "" and endTime != "") or (startTime != "" and endTime == ""):
+        # Error
+        print('Cant just use one date. Require two.')
+        sys.exit(2)
     else:
-        chart = BotChart("poloniex",pair,period,startTime,endTime)
-        
+        # Practice
+        liveTrading = False
+    
+    
+    dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
+    chart = BotChart("poloniex",pair)
     strategy = BotStrategy(totalBalance)
-
-    for candlestick in chart.getPoints():
-        dataoutput.logPoint(candlestick)
-        strategy.tick(candlestick)
-  
-    strategy.closeAllTrades()
-    strategy.calculateTotalProft()
+    
+    if not liveTrading:
+        
+        chart.getHistorical(period,startTime,endTime)
+        
+        for candlestick in chart.getPoints():
+            dataoutput.logPoint(candlestick)
+            strategy.tick(candlestick)
+      
+        strategy.closeAllTrades()
+        strategy.calculateTotalProft()
+    else:
+        while True:
+            tick = chart.getNext()
+            tick['date'] = ut(datetime.datetime.now())
+            strategy.tick(tick)
+            dataoutput.logPoint(tick)
+            time.sleep(int(period))
     
     
     createIndex = CreateIndex()

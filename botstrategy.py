@@ -10,7 +10,7 @@ class BotStrategy(object):
         self.prices = []
         self.closes = [] # Needed for Momentum Indicator
         self.trades = []
-        self.currentPrice = ""
+        self.currentPrice = 0
         self.currentDate = ""
         self.currentClose = ""
         self.balance = balance
@@ -24,11 +24,16 @@ class BotStrategy(object):
         
 
     def tick(self,candlestick):
-        self.currentPrice = float(candlestick['weightedAverage'])
+        if 'weightedAverage' in candlestick:
+            # HISTORIC VALUES
+            self.currentPrice = float(candlestick['weightedAverage'])
+        else:
+            # LIVE VALUES
+            self.currentPrice = float(candlestick['last'])
         self.prices.append(self.currentPrice)
         
-        self.currentClose = float(candlestick['close'])
-        self.closes.append(self.currentClose)
+        #self.currentClose = float(candlestick['close'])
+        #self.closes.append(self.currentClose)
         self.currentDate = datetime.datetime.fromtimestamp(int(candlestick['date'])).strftime('%Y-%m-%d %H:%M:%S')
         
         # LOGGING
