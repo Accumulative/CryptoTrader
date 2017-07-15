@@ -30,9 +30,8 @@ class BotChart(object):
             for line in text_file:
                 json_acceptable_string = line.replace("'", "\"")
                 dictionary.append(json.loads(json_acceptable_string))
-        print(dictionary)
         return dictionary
         
     def getNext(self):
-        print("Getting next tick...")
+        self.output.log("Getting next tick...")
         return self.conn.returnTicker()[self.pair]

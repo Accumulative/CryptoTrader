@@ -17,7 +17,29 @@ class BotAccount(object):
     
     def createBalancePage(self):
         with open("balance.html", "w") as text_file:
-            print("""<h1>BALANCE</h1><table id="example" class="display" cellspacing="0" width="100%">
+            print("""<!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
+        td, th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #dddddd;
+        }
+        </style>
+        </head>
+        <body>
+        <h1>BALANCE</h1><table id="example" class="display" cellspacing="0" width="100%">
         <thead>
             <tr>
                 <th>Pair</th>
@@ -35,7 +57,13 @@ class BotAccount(object):
             for k, v in self.data.items():
                 print("<tr><td>{0}</td><td>{1}</td></tr>".format(k, v), file=text_file)
             print("""</tbody>
-    </table>""", file=text_file)
+    </table>
+    <br/>
+    <div align="right" >
+    <button onclick="javascript:history.back()">Go back to index</button>
+    </div>
+    </body>
+    </html>""", file=text_file)
                     
     def __updateBalance(self):
         return {'BTC_XMR':50,'BTC_LTC':20}#{k: v for k, v in self.conn.returnBalances().items() if float(v) != 0}

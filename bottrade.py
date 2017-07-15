@@ -18,7 +18,7 @@ class BotTrade(object):
         self.status = "CLOSED"
         self.exitPrice = currentPrice
         self.dateClosed = dateC
-        self.output.log("Trade opened ({0}): {1} at {2}".format(self.id,self.volume, self.exitPrice))
+        self.output.log("Trade closed ({0}): {1} at {2}".format(self.id,self.volume, self.exitPrice))
 
     def tick(self, currentPrice):
         pass

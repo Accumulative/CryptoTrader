@@ -47,7 +47,7 @@ class BotStrategy(object):
             self.dirty = False
 
     def evaluatePositions(self):
-        changeCheck= self.trades
+        changeCheck= self.trades.copy()
         openTrades = []
         for trade in self.trades:
             if (trade.status == "OPEN"):
@@ -67,8 +67,7 @@ class BotStrategy(object):
                 if (self.currentPrice - trade.entryPrice < trade.stopLoss):
                     trade.close(self.currentDate, self.currentPrice)
                     self.balance += 5000 * self.currentPrice
-        
-        if changeCheck == self.trades:
+        if changeCheck != self.trades:
             self.dirty = True
 
     def updateOpenTrades(self):
@@ -78,6 +77,7 @@ class BotStrategy(object):
     
     def showAllTrades(self):
         self.output.logTrades(self.trades)
+        self.indicators.graphIndicators()
     
     
     def closeAllTrades(self):
@@ -86,7 +86,7 @@ class BotStrategy(object):
                 trade.close(self.currentPrice)
                 self.balance += 5000 * self.currentPrice
         
-        self.indicators.graphIndicators()
+        
    
     def calculateTotalProft(self):
        totalProfit = 0

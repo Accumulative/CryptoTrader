@@ -18,22 +18,22 @@ def main(argv):
     endTime = ""
     totalBalance = 5000
     liveTrading = False    
-    
+    environment = 'PI'
     output = BotLog()
     output.log("------------STARTING BACKTESTER------------")
     
     try:
-        opts, args = getopt.getopt(argv,"hp:c:s:e:b:",["period=","currency="])
+        opts, args = getopt.getopt(argv,"hp:c:s:e:b:v:",["period=","currency="])
     except getopt.GetoptError:
-        print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -b <balance>')
+        print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -b <balance> -v <environment>')
         sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':
-            print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -b <balance>')
+            print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -b <balance> -v <environment>')
             sys.exit()
         elif opt in ("-p", "--period"):
-            if (int(arg) in [300,900,1800,7200,14400,86400]):
+            if (int(arg) in [30,300,900,1800,7200,14400,86400]):
                 period = int(arg)
             else:
                 print('Poloniex requires periods in 300,900,1800,7200,14400, or 86400 second increments')
@@ -42,6 +42,8 @@ def main(argv):
             pair = arg
         elif opt in ("-s"):
             startTime = arg
+        elif opt in ("-v"):
+            environment = arg
         elif opt in ("-e"):
             endTime = arg
         elif opt in ("-b"):
@@ -62,6 +64,7 @@ def main(argv):
     dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
     chart = BotChart("poloniex",pair)
     strategy = BotStrategy(totalBalance)
+    createIndex = CreateIndex(environment)
     
     if not liveTrading:
         
@@ -73,16 +76,19 @@ def main(argv):
       
         strategy.closeAllTrades()
         strategy.calculateTotalProft()
+        createIndex.CreatePages()
     else:
         while True:
-            tick = chart.getNext()
-            tick['date'] = ut(datetime.datetime.now())
-            strategy.tick(tick)
-            dataoutput.logPoint(tick)
+            currTick = dict(chart.getNext())
+            currTick['date'] = str(ut(datetime.datetime.now()))
+            strategy.tick(currTick)
+            dataoutput.logPoint(currTick)
+            createIndex.CreatePages()
+#            output.log("Sleeping...")
             time.sleep(int(period))
     
     
-    createIndex = CreateIndex()
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
