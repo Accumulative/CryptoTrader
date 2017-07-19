@@ -1,6 +1,7 @@
 
 from poloniex import Poloniex
 from botlog import BotLog
+import time
 
 class BotAccount(object):
     def __init__(self):
@@ -66,4 +67,12 @@ class BotAccount(object):
     </html>""", file=text_file)
                     
     def __updateBalance(self):
-        return {'BTC_XMR':50,'BTC_LTC':20}#{k: v for k, v in self.conn.returnBalances().items() if float(v) != 0}
+#        while True:
+#            try:
+#                balData = {k: v for k, v in self.conn.returnBalances().items() if float(v) != 0} 
+#                break
+#            except Exception as e:
+#                self.output.log("Error: " + str(e))
+#                time.sleep(20)
+#                continue
+        return {'BTC_XMR':50,'BTC_LTC':20}#balData

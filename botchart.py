@@ -2,6 +2,7 @@ from poloniex import Poloniex
 from botlog import BotLog
 import os
 import json
+import time
 
 class BotChart(object):
     def __init__(self, exchange, pair):
@@ -16,7 +17,14 @@ class BotChart(object):
 
         if not os.path.exists("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime) + ".txt"):
             self.output.log("Getting chart data (API)...")
-            self.data = self.conn.returnChartData(currencyPair=self.pair,start=self.startTime,end=self.endTime,period=self.period)    
+            while True:
+                try:
+                    self.data = self.conn.returnChartData(currencyPair=self.pair,start=self.startTime,end=self.endTime,period=self.period)   
+                    break
+                except Exception as e:
+                    self.output.log("Error: " + str(e))
+                    time.sleep(20)
+                    continue
         else:
             self.output.log("Getting chart data (Local)...")
             self.data = self.__getDataFromFile("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime) + ".txt")
@@ -34,4 +42,12 @@ class BotChart(object):
         
     def getNext(self):
         self.output.log("Getting next tick...")
-        return self.conn.returnTicker()[self.pair]
+        while True:
+            try:
+                tickData = self.conn.returnTicker()[self.pair]  
+                break
+            except Exception as e:
+                self.output.log("Error: " + str(e))
+                time.sleep(20)
+                continue
+        return tickData

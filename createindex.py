@@ -13,7 +13,7 @@ class CreateIndex(object):
         if self.runningOnPi == False:
             self.directory = os.path.abspath("") + "/"
         else:
-            self.directory = "/"
+            self.directory = ""
             
     def CreatePages(self):
         with open("index.html", "w") as text_file:
