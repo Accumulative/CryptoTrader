@@ -5,7 +5,7 @@ import datetime
 from botaccount import BotAccount
 
 class BotStrategy(object):
-    def __init__(self, balance):
+    def __init__(self, functions, balance):
         self.output = BotLog()
         self.prices = []
         self.closes = [] # Needed for Momentum Indicator
@@ -13,14 +13,16 @@ class BotStrategy(object):
         self.currentPrice = 0
         self.currentDate = ""
         self.currentClose = ""
+        self.functions = functions
         self.balance = balance
-        self.account = BotAccount()
+        self.account = BotAccount(self.functions)
         self.account.createBalancePage()
         self.startingPositions = self.account.getBalance()
         self.numSimulTrades = 1
         self.indicators = BotIndicators()
         self.currentId = 0
         self.dirty = False
+        
         
 
     def tick(self,candlestick):
@@ -57,7 +59,7 @@ class BotStrategy(object):
             if (self.currentPrice < self.indicators.movingAverage(self.prices,15)):
                 self.currentId += 1
                 self.balance -= 5000 * self.currentPrice
-                self.trades.append(BotTrade(self.currentDate, 5000, self.currentPrice,self.currentId,stopLoss=.001))
+                self.trades.append(BotTrade(self.functions, self.currentDate, 5000, self.currentPrice,self.currentId,stopLoss=.001))
 
         for trade in openTrades:
             if (self.currentPrice > self.indicators.movingAverage(self.prices,15)):

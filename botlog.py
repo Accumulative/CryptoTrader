@@ -26,10 +26,9 @@ class BotLog(object):
     def createFolders(self):
         
         folder = "Logs/" + datetime.datetime.now().strftime('%Y%m%d')
+        self.destinationLog = folder + "/log.html"
+        self.destinationTrades = folder + "/trades.html"
         if not os.path.exists(folder):
-            self.destinationLog = folder + "/log.html"
-            self.destinationTrades = folder + "/trades.html"
-            
             os.makedirs(folder)
             with open(folder + "/output.html","w") as text_file:
                 print("""<!DOCTYPE html>

@@ -7,6 +7,7 @@ from botdatalog import BotDataLog
 from createindex import CreateIndex
 import time
 import datetime
+from botfunctions import BotFunctions
 
 def dt(u): return datetime.datetime.utcfromtimestamp(u)
 def ut(d): return calendar.timegm(d.timetuple())
@@ -60,10 +61,10 @@ def main(argv):
         # Practice
         liveTrading = False
     
-    
+    functions = BotFunctions()
     dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
-    chart = BotChart("poloniex",pair)
-    strategy = BotStrategy(totalBalance)
+    chart = BotChart(functions,pair)
+    strategy = BotStrategy(functions,totalBalance)
     createIndex = CreateIndex(environment)
     
     if not liveTrading:

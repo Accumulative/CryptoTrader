@@ -1,14 +1,13 @@
-from poloniex import Poloniex
 from botlog import BotLog
 import os
 import json
 import time
 
 class BotChart(object):
-    def __init__(self, exchange, pair):
+    def __init__(self, functions, pair):
         self.pair = pair
         self.output = BotLog()
-        self.conn = Poloniex('key','secret')
+        self.functions = functions
     
     def getHistorical(self, period, startTime, endTime):
         self.period = period
@@ -19,7 +18,7 @@ class BotChart(object):
             self.output.log("Getting chart data (API)...")
             while True:
                 try:
-                    self.data = self.conn.returnChartData(currencyPair=self.pair,start=self.startTime,end=self.endTime,period=self.period)   
+                    self.data = self.functions.getHistoricTicks(self, self.pair, self.startTime, self.endTime, self.period) 
                     break
                 except Exception as e:
                     self.output.log("Error: " + str(e))
@@ -42,12 +41,4 @@ class BotChart(object):
         
     def getNext(self):
         self.output.log("Getting next tick...")
-        while True:
-            try:
-                tickData = self.conn.returnTicker()[self.pair]  
-                break
-            except Exception as e:
-                self.output.log("Error: " + str(e))
-                time.sleep(20)
-                continue
-        return tickData
+        return self.functions.getNextTick(self.pair)
