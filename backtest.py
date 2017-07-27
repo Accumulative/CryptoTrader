@@ -42,11 +42,11 @@ def main(argv):
         elif opt in ("-c", "--currency"):
             pair = arg
         elif opt in ("-s"):
-            startTime = arg
+            startTime = ut(datetime.datetime.strptime(arg, '%d/%m/%Y'))
         elif opt in ("-v"):
             environment = arg
         elif opt in ("-e"):
-            endTime = arg
+            endTime = ut(datetime.datetime.strptime(arg, '%d/%m/%Y'))
         elif opt in ("-b"):
             totalBalance = int(arg)
     
@@ -62,13 +62,13 @@ def main(argv):
         liveTrading = False
     
     functions = BotFunctions()
-    dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
+    
     chart = BotChart(functions,pair)
     strategy = BotStrategy(functions,totalBalance)
     createIndex = CreateIndex(environment)
     
     if not liveTrading:
-        
+        dataoutput = BotDataLog(pair, startTime, endTime)  
         chart.getHistorical(period,startTime,endTime)
         
         for candlestick in chart.getPoints():
@@ -79,6 +79,7 @@ def main(argv):
         strategy.calculateTotalProft()
         createIndex.CreatePages()
     else:
+        dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
         while True:
             currTick = dict(chart.getNext())
             currTick['date'] = str(ut(datetime.datetime.now()))

@@ -1,7 +1,7 @@
 from botlog import BotLog
 
 class BotTrade(object):
-    def __init__(self, functions, dateO, volume, currentPrice,tradeId,stopLoss=0):
+    def __init__(self, functions, dateO, volume, currentPrice,tradeId,stopLoss=0, fee=0):
         self.output = BotLog()
         self.status = "OPEN"
         self.entryPrice = currentPrice
@@ -13,12 +13,15 @@ class BotTrade(object):
         if (stopLoss):
             self.stopLoss = currentPrice - stopLoss
         self.id = tradeId
-        self.functions = functions        
+        self.functions = functions    
+        self.fee = fee
+        self.reason = ""
         
-    def close(self, dateC, currentPrice):
+    def close(self, dateC, currentPrice, reason):
         self.status = "CLOSED"
         self.exitPrice = currentPrice
         self.dateClosed = dateC
+        self.reason = reason
         self.output.log("Trade closed ({0}): {1} at {2}".format(self.id,self.volume, self.exitPrice))
 
     def tick(self, currentPrice):

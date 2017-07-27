@@ -18,7 +18,7 @@ class BotChart(object):
             self.output.log("Getting chart data (API)...")
             while True:
                 try:
-                    self.data = self.functions.getHistoricTicks(self, self.pair, self.startTime, self.endTime, self.period) 
+                    self.data = self.functions.getHistoricTicks(self.pair, self.startTime, self.endTime, self.period) 
                     break
                 except Exception as e:
                     self.output.log("Error: " + str(e))

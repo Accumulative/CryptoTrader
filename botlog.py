@@ -68,7 +68,7 @@ margin-left:120px
             print("<p>{0}</p>".format(datetime.datetime.now().strftime('%H:%M:%S') + ": " +m), file=text_file)
         self.consoleLog(m)
         
-    def logTrades(self, trades):
+    def logTrades(self, trades, bal):
         self.createFolders()
         self.consoleLog("Logging trades")
         with open(self.destinationTrades, "w") as text_file:
@@ -98,35 +98,42 @@ margin-left:120px
             <table id="example" class="display" cellspacing="0" width="100%">
         <thead>
             <tr>
+                <th>ID</th>
                 <th>Open time</th>
                 <th>Close time</th>
                 <th>Status</th>
                 <th>Amount</th>
                 <th>Entry</th>
                 <th>Exit</th>
+                <th>Fee</th>
                 <th>Profit</th>
                 <th>Percentage</th>
+                <th>Reason</th>
             </tr>
         </thead>
         <tfoot>
             <tr>
+                <th>ID</th>
                 <th>Open time</th>
                 <th>Close time</th>
                 <th>Status</th>
                 <th>Amount</th>
                 <th>Entry</th>
                 <th>Exit</th>
+                <th>Fee</th>
                 <th>Profit</th>
                 <th>Percentage</th>
+                <th>Reason</th>
             </tr>
         </tfoot>
         <tbody>
             <tr>""", file=text_file)
             sumProfit = 0
             for trade in trades:
-                sumProfit += 0 if trade.exitPrice == "" else float(trade.entryPrice - trade.exitPrice)*trade.volume
-                print("<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6:0.7f}</td><td>{7:0.4f}%</td></tr>".format(trade.dateOpened, trade.dateClosed, trade.status, trade.volume, trade.entryPrice, trade.exitPrice, 0 if trade.exitPrice == "" else float(trade.entryPrice - trade.exitPrice)*trade.volume, 0 if trade.exitPrice == "" else (trade.entryPrice/trade.exitPrice-1)), file=text_file)
-            print("<tr><td></td><td></td><td></td><td></td><td></td><td></td><td>{0:0.7f}</td><td>{1:0.4f}%</td></tr>".format(sumProfit, sumProfit/5000), file=text_file)
+                currProfit = 0 if trade.exitPrice == "" else float(trade.exitPrice - trade.entryPrice)*trade.volume - trade.fee
+                sumProfit += currProfit
+                print("<tr><td>{8}</td><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{9}</td><td>{6:0.7f}</td><td>{7:0.4f}%</td><td>{10}</td></tr>".format(trade.dateOpened, trade.dateClosed, trade.status, trade.volume, trade.entryPrice, trade.exitPrice, currProfit, 0 if trade.exitPrice == "" else ((trade.exitPrice * trade.volume)/(currProfit)-1), trade.id, trade.fee, trade.reason), file=text_file)
+            print("<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>{0:0.7f}</td><td>{1:0.4f}%</td><td></td></tr>".format(sumProfit, sumProfit/bal), file=text_file)
             print("""</tbody>
     </table>
     <br/>
