@@ -9,7 +9,7 @@ class BotTrade(object):
         self.dateOpened = dateO
         self.volume = volume
         self.dateClosed = ""
-        self.output.log("Trade opened ({0}) at {1}".format(tradeId,currentPrice))
+#        self.output.log("Trade opened ({0}) at {1}".format(tradeId,currentPrice))
         if (stopLoss):
             self.stopLoss = currentPrice - stopLoss
         self.id = tradeId
@@ -22,7 +22,7 @@ class BotTrade(object):
         self.exitPrice = currentPrice
         self.dateClosed = dateC
         self.reason = reason
-        self.output.log("Trade closed ({0}): {1} at {2}".format(self.id,self.volume, self.exitPrice))
+#        self.output.log("Trade closed ({0}): {1} at {2}".format(self.id,self.volume, self.exitPrice))
 
     def tick(self, currentPrice):
         pass

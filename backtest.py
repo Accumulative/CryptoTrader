@@ -64,22 +64,33 @@ def main(argv):
     functions = BotFunctions()
     
     chart = BotChart(functions,pair)
-    strategy = BotStrategy(functions,totalBalance)
+    
     createIndex = CreateIndex(environment)
     
     if not liveTrading:
         dataoutput = BotDataLog(pair, startTime, endTime)  
         chart.getHistorical(period,startTime,endTime)
         
-        for candlestick in chart.getPoints():
-            dataoutput.logPoint(candlestick)
-            strategy.tick(candlestick)
-      
-        strategy.closeAllTrades()
-        strategy.calculateTotalProft()
+#==============================================================================
+#             [factor, lower limit, higher limit, step] is the format
+#==============================================================================
+        trialDetails = ['highMA',40,60,4]
+        
+        for trial in range(1, int((trialDetails[2]-trialDetails[1])/trialDetails[3])+2):
+            print("Starting trial {0}...".format(str(trial)))
+            strategyDetails = {trialDetails[0]:trialDetails[1]+trialDetails[3]*(trial-1),'lowMA':20}
+            strategy = BotStrategy(functions,totalBalance,trial, strategyDetails)
+            for candlestick in chart.getPoints():
+                dataoutput.logPoint(candlestick)
+                strategy.tick(candlestick)
+          
+            strategy.closeAllTrades()
+            strategy.calculateTotalProft()
         createIndex.CreatePages()
     else:
         dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
+        strategyDetails = {'highMA':50,'lowMA':20}
+        strategy = BotStrategy(functions,totalBalance,0, trialDetails)
         while True:
             currTick = dict(chart.getNext())
             currTick['date'] = str(ut(datetime.datetime.now()))

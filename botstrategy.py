@@ -5,7 +5,7 @@ import datetime
 from botaccount import BotAccount
 
 class BotStrategy(object):
-    def __init__(self, functions, balance):
+    def __init__(self, functions, balance, trial, details):
         self.output = BotLog()
         self.prices = []
         self.closes = [] # Needed for Momentum Indicator
@@ -24,6 +24,11 @@ class BotStrategy(object):
         self.currentId = 0
         self.dirty = False
         self.fee = 0.0025
+        self.trial = trial
+        print(details)
+        self.highMA = details['highMA']
+        self.lowMA = details['lowMA']
+                
         
 
     def tick(self,candlestick):
@@ -45,7 +50,7 @@ class BotStrategy(object):
         self.indicators.doDataPoints(self.currentPrice, self.currentDate)
         self.evaluatePositions()
         self.updateOpenTrades()
-        if self.dirty:
+        if self.dirty and self.trial == 0:
             self.showAllTrades()
             self.dirty = False
 
@@ -56,8 +61,8 @@ class BotStrategy(object):
             if (trade.status == "OPEN"):
                 openTrades.append(trade)
         
-        fifteenDayMA = self.indicators.movingAverage(self.prices,20)
-        fiftyDayMA = self.indicators.movingAverage(self.prices,50)
+        fifteenDayMA = self.indicators.movingAverage(self.prices,self.lowMA)
+        fiftyDayMA = self.indicators.movingAverage(self.prices,self.highMA)
         factor = 1.00
         if (len(openTrades) < self.numSimulTrades):
             if (fifteenDayMA > fiftyDayMA * factor ):
@@ -85,7 +90,7 @@ class BotStrategy(object):
                 trade.tick(self.currentPrice)
     
     def showAllTrades(self):
-        self.output.logTrades(self.trades, self.origBalance)
+        self.output.logTrades(self.trades, self.origBalance, self.trial)
         self.indicators.graphIndicators()
     
     

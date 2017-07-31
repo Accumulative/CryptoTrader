@@ -20,14 +20,14 @@ class BotLog(object):
     def __init__(self):
         folder = "Logs/" + datetime.datetime.now().strftime('%Y%m%d')
         self.destinationLog = folder + "/log.html"
-        self.destinationTrades = folder + "/trades.html"
+        self.destinationTrades = folder + "/trades"
         self.createFolders()
         
     def createFolders(self):
         
         folder = "Logs/" + datetime.datetime.now().strftime('%Y%m%d')
         self.destinationLog = folder + "/log.html"
-        self.destinationTrades = folder + "/trades.html"
+        self.destinationTrades = folder + "/trades"
         if not os.path.exists(folder):
             os.makedirs(folder)
             with open(folder + "/output.html","w") as text_file:
@@ -68,10 +68,10 @@ margin-left:120px
             print("<p>{0}</p>".format(datetime.datetime.now().strftime('%H:%M:%S') + ": " +m), file=text_file)
         self.consoleLog(m)
         
-    def logTrades(self, trades, bal):
+    def logTrades(self, trades, bal, trial):
         self.createFolders()
         self.consoleLog("Logging trades")
-        with open(self.destinationTrades, "w") as text_file:
+        with open(self.destinationTrades + str(trial) + ".html", "w") as text_file:
             print("""<!DOCTYPE html>
         <html>
         <head>
