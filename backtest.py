@@ -7,20 +7,65 @@ from botdatalog import BotDataLog
 from createindex import CreateIndex
 import time
 import datetime
+import numpy as np
 from botfunctions import BotFunctions
 
 def dt(u): return datetime.datetime.utcfromtimestamp(u)
 def ut(d): return calendar.timegm(d.timetuple())
 
+functions = BotFunctions()
+period = 300
+pair = "BTC_XMR"
+startTime = ""
+endTime = ""
+totalBalance = 5000
+liveTrading = False    
+environment = 'PI'
+output = BotLog()
+
+chart = ""
+dataoutput = ""
+
+def trial(toPerform, curr):
+    num = "_".join(map(str, (":".join(map(str, a)) for a in toPerform)))
+    strategyDetails = {}
+    for z in toPerform:
+        strategyDetails[z[0]] = z[1]
+    print("Starting trial {0}...".format(str(num)))
+    strategy = BotStrategy(functions,totalBalance,num, strategyDetails)
+    for candlestick in chart.getPoints():
+        dataoutput.logPoint(candlestick)
+        strategy.tick(candlestick)
+  
+    strategy.closeAllTrades()
+    strategy.calculateTotalProft()
+    
+def performTrial(y, n, curr):
+    
+    if n >= 1:
+        toPerform = y.copy()
+        old = y[n-1]
+        for x in range(1, int((y[n-1][2]-y[n-1][1])/y[n-1][3])+2):
+            
+            toPerform[n-1] = [old[0],old[1]+old[3]*(x-1)]
+            
+            print(toPerform)
+            curr[n-1]=x
+            performTrial(toPerform, n - 1, curr)
+    else:
+       trial(y, curr)
+
 def main(argv):
-    period = 300
-    pair = "BTC_XMR"
-    startTime = ""
-    endTime = ""
-    totalBalance = 5000
-    liveTrading = False    
-    environment = 'PI'
-    output = BotLog()
+    global period
+    global pair
+    global startTime
+    global endTime
+    global totalBalance
+    global liveTrading  
+    global environment
+    global chart
+    global dataoutput
+    
     output.log("------------STARTING BACKTESTER------------")
     
     try:
@@ -61,7 +106,6 @@ def main(argv):
         # Practice
         liveTrading = False
     
-    functions = BotFunctions()
     
     chart = BotChart(functions,pair)
     
@@ -74,23 +118,15 @@ def main(argv):
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = ['highMA',40,60,4]
+        trialDetails = [['highMA',40,60,10],['lowMA',10,30,5]]
         
-        for trial in range(1, int((trialDetails[2]-trialDetails[1])/trialDetails[3])+2):
-            print("Starting trial {0}...".format(str(trial)))
-            strategyDetails = {trialDetails[0]:trialDetails[1]+trialDetails[3]*(trial-1),'lowMA':20}
-            strategy = BotStrategy(functions,totalBalance,trial, strategyDetails)
-            for candlestick in chart.getPoints():
-                dataoutput.logPoint(candlestick)
-                strategy.tick(candlestick)
-          
-            strategy.closeAllTrades()
-            strategy.calculateTotalProft()
+        performTrial(trialDetails, len(trialDetails), np.zeros(len(trialDetails)))
+        
         createIndex.CreatePages()
     else:
         dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
         strategyDetails = {'highMA':50,'lowMA':20}
-        strategy = BotStrategy(functions,totalBalance,0, trialDetails)
+        strategy = BotStrategy(functions,totalBalance,0, strategyDetails)
         while True:
             currTick = dict(chart.getNext())
             currTick['date'] = str(ut(datetime.datetime.now()))
@@ -100,8 +136,7 @@ def main(argv):
 #            output.log("Sleeping...")
             time.sleep(int(period))
     
-    
-    
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
