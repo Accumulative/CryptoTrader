@@ -1,5 +1,6 @@
 import os
 import datetime
+from datehelper import DateHelper
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -28,6 +29,8 @@ class BotLog(object):
         folder = "Logs/" + datetime.datetime.now().strftime('%Y%m%d')
         self.destinationLog = folder + "/log.html"
         self.destinationTrades = folder + "/trades"
+        if not os.path.exists(self.destinationTrades):
+            os.makedirs(self.destinationTrades)
         if not os.path.exists(folder):
             os.makedirs(folder)
             with open(folder + "/output.html","w") as text_file:
@@ -71,7 +74,7 @@ margin-left:120px
     def logTrades(self, trades, bal, trial):
         self.createFolders()
         self.consoleLog("Logging trades")
-        with open(self.destinationTrades + str(trial) + ".html", "w") as text_file:
+        with open(self.destinationTrades + "/" + str(trial) + ".html", "w") as text_file:
             print("""<!DOCTYPE html>
         <html>
         <head>
@@ -142,3 +145,71 @@ margin-left:120px
     </div>
     </body>
     </html>""", file=text_file)
+    
+    def logTrials(self, trialDetails, trialResults):
+        self.consoleLog("Logging trials...")
+        self.createFolders()
+        name = "_".join(a[0]+"("+str(a[1])+"-"+str(a[2])+")" for a in trialDetails) + "_" + str(DateHelper.ut(datetime.datetime.now()))
+        with open(self.destinationTrades  + "/" +  name + ".html", "w") as text_file:
+            print("""<!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
+        td, th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #dddddd;
+        }
+        </style>
+        </head>
+        <body>
+        <h2 align="center">Monte Carlo results</h2>
+            <table id="example" class="display" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>ID</th>""" + \
+        "".join("<th>{0}</th>".format(b[0]) for b in trialDetails) + \
+                """<th>Profit</th>
+                
+            </tr>
+        </thead>
+        <tfoot>
+            <tr>
+                <th>ID</th>""" + \
+        "".join("<th>{0}</th>".format(b[0]) for b in trialDetails) + \
+                """<th>Profit</th>
+            </tr>
+        </tfoot>
+        <tbody>
+            <tr>""", file=text_file)
+            
+                     
+            
+            for res in sorted(trialResults, key=lambda prof: prof[2]):
+                
+                stringToWrite = "<td>{}</td>".format(res[0]) + \
+                "".join("<td>{}</td>".format(c[1]) for c in res[:][1]) + \
+                "<td>{}</td>".format(res[2]) + \
+                "</tr>"
+                
+                print(stringToWrite, file=text_file)
+            print("""</tbody>
+    </table>
+    <br/>
+    <div align="right" >
+    <button onclick="javascript:history.back()">Go back to index</button>
+    </div>
+    </body>
+    </html>""", file=text_file)
+        
+        

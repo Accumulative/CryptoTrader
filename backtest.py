@@ -1,5 +1,5 @@
 import sys, getopt
-import calendar
+
 from botchart import BotChart
 from botstrategy import BotStrategy
 from botlog import BotLog
@@ -10,8 +10,7 @@ import datetime
 import numpy as np
 from botfunctions import BotFunctions
 
-def dt(u): return datetime.datetime.utcfromtimestamp(u)
-def ut(d): return calendar.timegm(d.timetuple())
+from datehelper import DateHelper
 
 functions = BotFunctions()
 period = 300
@@ -22,12 +21,12 @@ totalBalance = 5000
 liveTrading = False    
 environment = 'PI'
 output = BotLog()
-
+trialResults = []
 chart = ""
 dataoutput = ""
 
 def trial(toPerform, curr):
-    num = "_".join(map(str, (":".join(map(str, a)) for a in toPerform)))
+    num = "_".join(map(str, ("-".join(map(str, a)) for a in toPerform)))
     strategyDetails = {}
     for z in toPerform:
         strategyDetails[z[0]] = z[1]
@@ -38,7 +37,10 @@ def trial(toPerform, curr):
         strategy.tick(candlestick)
   
     strategy.closeAllTrades()
-    strategy.calculateTotalProft()
+    totalProfit = strategy.calculateTotalProft()
+    global trialResults
+#    print([num, toPerform, totalProfit])
+    trialResults.append([num, toPerform.copy(), totalProfit])
     
 def performTrial(y, n, curr):
     
@@ -49,7 +51,7 @@ def performTrial(y, n, curr):
             
             toPerform[n-1] = [old[0],old[1]+old[3]*(x-1)]
             
-            print(toPerform)
+            #print(toPerform)
             curr[n-1]=x
             performTrial(toPerform, n - 1, curr)
     else:
@@ -87,11 +89,11 @@ def main(argv):
         elif opt in ("-c", "--currency"):
             pair = arg
         elif opt in ("-s"):
-            startTime = ut(datetime.datetime.strptime(arg, '%d/%m/%Y'))
+            startTime = DateHelper.ut(datetime.datetime.strptime(arg, '%d/%m/%Y')) if "/" in arg else arg
         elif opt in ("-v"):
             environment = arg
         elif opt in ("-e"):
-            endTime = ut(datetime.datetime.strptime(arg, '%d/%m/%Y'))
+            endTime = DateHelper.ut(datetime.datetime.strptime(arg, '%d/%m/%Y')) if "/" in arg else arg
         elif opt in ("-b"):
             totalBalance = int(arg)
     
@@ -118,18 +120,20 @@ def main(argv):
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = [['highMA',40,60,10],['lowMA',10,30,5]]
+        trialDetails = [['highMA',40,60,2],['lowMA',10,30,2]]
         
         performTrial(trialDetails, len(trialDetails), np.zeros(len(trialDetails)))
+        #print(trialResults)
+        output.logTrials(trialDetails, trialResults)        
         
         createIndex.CreatePages()
     else:
-        dataoutput = BotDataLog(pair, ut(datetime.datetime.now()), "LIVE")  
+        dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE")  
         strategyDetails = {'highMA':50,'lowMA':20}
         strategy = BotStrategy(functions,totalBalance,0, strategyDetails)
         while True:
             currTick = dict(chart.getNext())
-            currTick['date'] = str(ut(datetime.datetime.now()))
+            currTick['date'] = str(DateHelper.ut(datetime.datetime.now()))
             strategy.tick(currTick)
             dataoutput.logPoint(currTick)
             createIndex.CreatePages()

@@ -25,12 +25,10 @@ class BotStrategy(object):
         self.dirty = False
         self.fee = 0.0025
         self.trial = trial
-        print(details)
         self.highMA = details['highMA']
         self.lowMA = details['lowMA']
                 
         
-
     def tick(self,candlestick):
         if 'weightedAverage' in candlestick:
             # HISTORIC VALUES
@@ -112,3 +110,4 @@ class BotStrategy(object):
        self.output.log("Total profit is:"+ str(totalProfit))
        self.output.log("Total balance is:"+ str(self.balance))
        self.output.log("Total fees are:"+ str(totalFees))
+       return totalProfit
