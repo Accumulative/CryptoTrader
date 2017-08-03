@@ -4,6 +4,7 @@ from botchart import BotChart
 from botstrategy import BotStrategy
 from botlog import BotLog
 from botdatalog import BotDataLog
+from botgraph import BotGraph
 from createindex import CreateIndex
 import time
 import datetime
@@ -120,11 +121,14 @@ def main(argv):
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = [['highMA',40,60,2],['lowMA',10,30,2]]
+        trialDetails = [['highMA',40,80,8],['lowMA',10,40,4]]
         
         performTrial(trialDetails, len(trialDetails), np.zeros(len(trialDetails)))
-        #print(trialResults)
+#        print(trialResults)
         output.logTrials(trialDetails, trialResults)        
+        
+        BotGraph.heatmap(trialResults)        
+        BotGraph.graph(trialResults)
         
         createIndex.CreatePages()
     else:
