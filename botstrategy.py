@@ -19,7 +19,7 @@ class BotStrategy(object):
         self.account = BotAccount(self.functions)
         self.account.createBalancePage()
         self.startingPositions = self.account.getBalance()
-        self.numSimulTrades = 1
+        self.numSimulTrades = details['simTrades']
         self.indicators = BotIndicators()
         self.currentId = 0
         self.dirty = False

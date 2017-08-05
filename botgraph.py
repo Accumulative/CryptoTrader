@@ -22,39 +22,89 @@ class BotGraph(object):
             self.outputfile.write("],\n")
             
         self.outputfile.write("""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
+    
         
-    def heatmap(datapoints):
-        intensity = []
-        minX = min(datapoints, key=lambda e: int(e[1][0][1]))[1][0][1]
-        minY = min(datapoints, key=lambda e: int(e[1][1][1]))[1][1][1]
-        maxX = max(datapoints, key=lambda e: int(e[1][0][1]))[1][0][1]
-        maxY = max(datapoints, key=lambda e: int(e[1][1][1]))[1][1][1]
-        xStep = datapoints[1][1][0][1]-datapoints[0][1][0][1]
+    def heatmap(self, datapoints):
         print(datapoints)
-        yStep = datapoints[int(round((maxX-minX)/xStep,0))+1][1][1][1]-datapoints[0][1][1][1]
-        x = []
-        y = []
-        print(minY,maxY+yStep,yStep)
-        x = np.arange(minX,maxX+xStep,xStep)
-        y = np.arange(minY,maxY+yStep,yStep)
-        intensity = np.zeros([(maxY-minY)/yStep+1,(maxX-minX)/xStep+1])
+        dimensions = len(datapoints[0][1])        
+        numberOfPoints = len(datapoints)
         
-        for point in datapoints:
-            intensity[(point[1][1][1]-minY)/yStep,(point[1][0][1]-minX)/xStep] = point[2]
+        closenessLimit = int(np.ceil(numberOfPoints * 0.01))
+        
+        intensity = []
+        minArray = [min(datapoints, key=lambda e: int(e[1][i][1]))[1][i][1] for i in range(dimensions)]
+        maxArray = [max(datapoints, key=lambda e: int(e[1][i][1]))[1][i][1] for i in range(dimensions)]
+        
+        steps = []
+        nextStep = 1
+        for j in range(dimensions):
+            steps.append(datapoints[nextStep][1][j][1]-datapoints[nextStep - 1][1][j][1])
+            #print(j,maxArray[j],minArray[j],steps[j])
+            nextStep *= int(round((maxArray[j]-minArray[j])/steps[j],0))+1
+            
+        
+        data = []
+        for j in range(dimensions):
+            data.append(np.arange(minArray[j],maxArray[j]+steps[j],steps[j]))
         
         #setup the 2D grid with Numpy
-        x, y = np.meshgrid(x, y)
+        mesh = np.meshgrid(*[np.linspace(minArray[i],maxArray[i],int((maxArray[i]-minArray[i])/steps[i])+1) for i in range(dimensions)])
         
+        for i in range(dimensions):
+            datapoints = sorted(datapoints, key=lambda x: x[1][dimensions-i-1][1])
         
-        fig = plt.figure()
+        # WRONG
+        m = []
+        for s in range(len(steps)):
+            m.append((maxArray[s]-minArray[s])/steps[s]+1)
         
-        #now just plug the data into pcolormesh, it's that easy!
-        plt.pcolormesh(x, y, intensity)
-        plt.colorbar() #need a colorbar to show the intensity scale
-        fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'_heatmap.png')   # save the figure to file
-        plt.close(fig) 
+        intensity = np.zeros(m[::-1])
+        topFive = sorted(datapoints, key=lambda x: x[2]!=0, reverse=True)[:5]
+        topFiveIndex = np.zeros([len(topFive),dimensions])#sorted(range(len(datapoints)), key=lambda k: datapoints[k][2], reverse=True)[:5]
+        
+        count = 0
+        for index,value in np.ndenumerate( intensity ):
+            count += 1
+            intensity[index] = datapoints[count-1][2]
             
-    def graph(datapoints):
+            for val in range(len(topFive)):
+                if value == topFive[val][2]:
+                    topFiveIndex[val] = index # (y, x)
+        
+        scoreArray = []
+        for i in range(len(topFive)):
+            if topFive[i][2] != 0:
+#                simArray = np.subtract(intensity, topFive[i][2])
+    #            print(simArray)
+                score = 0
+                counter = 0
+                for index,value in np.ndenumerate( intensity ):
+                    #print(topFiveIndex[i],index[::-1],np.sqrt(np.sum(np.square(np.subtract(topFiveIndex[i],index[::-1])))))
+                    if np.sqrt(np.sum(np.square(np.subtract(topFiveIndex[i],index[::-1])))) <= closenessLimit:
+    #                    
+                        if value != 0:
+                            score += value
+                            counter +=1 
+                    
+                scoreArray.append((score/counter + topFive[i][2])/2)
+        
+        winner = max(range(len(scoreArray)), key=lambda k: scoreArray[k])    
+        
+        #self.output.log(', '.join([str(x) for x in topFive[winner]]))
+        print(', '.join([str(x) for x in topFive[winner]]))
+        
+        if dimensions == 2:
+            fig = plt.figure()
+            
+            #now just plug the data into pcolormesh, it's that easy!
+            #print(mesh[0], mesh[1], intensity)
+            plt.pcolormesh(mesh[0], mesh[1], intensity)
+            plt.colorbar() #need a colorbar to show the intensity scale
+            #plt.show()
+            fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'_heatmap.png')   # save the figure to file
+            plt.close(fig) 
+            
+    def graph(self, datapoints):
         
         
         intensity = []
@@ -73,6 +123,8 @@ class BotGraph(object):
         x = np.array(x)
         y = np.array(y)
         intensity = np.array(intensity)
+        
+        
         
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1, projection='3d')

@@ -22,6 +22,7 @@ totalBalance = 5000
 liveTrading = False    
 environment = 'PI'
 output = BotLog()
+botgrapher = BotGraph()
 trialResults = []
 chart = ""
 dataoutput = ""
@@ -121,14 +122,18 @@ def main(argv):
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = [['highMA',40,80,8],['lowMA',10,40,4]]
+        trialDetails = [['highMA',40,80,20],['lowMA',10,40,10],['simTrades',1,5,1]]
         
         performTrial(trialDetails, len(trialDetails), np.zeros(len(trialDetails)))
 #        print(trialResults)
         output.logTrials(trialDetails, trialResults)        
         
-        BotGraph.heatmap(trialResults)        
-        BotGraph.graph(trialResults)
+        # N dimensional views
+        botgrapher.heatmap(trialResults)  
+        
+        # 2 dimensional views
+        if len(trialDetails) == 2:
+            botgrapher.graph(trialResults)
         
         createIndex.CreatePages()
     else:
