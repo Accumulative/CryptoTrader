@@ -39,10 +39,10 @@ def trial(toPerform, curr):
         strategy.tick(candlestick)
   
     strategy.closeAllTrades()
-    totalProfit = strategy.calculateTotalProft()
+    totalProfit, marketProfit = strategy.calculateTotalProft()
     global trialResults
 #    print([num, toPerform, totalProfit])
-    trialResults.append([num, toPerform.copy(), totalProfit])
+    trialResults.append([num, toPerform.copy(), totalProfit, (marketProfit)*totalBalance])
     
 def performTrial(y, n, curr):
     
@@ -122,11 +122,12 @@ def main(argv):
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = [['highMA',40,80,20],['lowMA',10,40,10],['simTrades',1,5,1]]
+        trialDetails = [['highMA',60,100,2],['lowMA',30,60,2],['maFactor',1,2,0.1],['simTrades',1,1,1]]
         
         performTrial(trialDetails, len(trialDetails), np.zeros(len(trialDetails)))
 #        print(trialResults)
         output.logTrials(trialDetails, trialResults)        
+        
         
         # N dimensional views
         botgrapher.heatmap(trialResults)  
@@ -138,7 +139,7 @@ def main(argv):
         createIndex.CreatePages()
     else:
         dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE")  
-        strategyDetails = {'highMA':50,'lowMA':20}
+        strategyDetails = {'highMA':50,'lowMA':20,'maFactor':1,'simTrades':1}
         strategy = BotStrategy(functions,totalBalance,0, strategyDetails)
         while True:
             currTick = dict(chart.getNext())

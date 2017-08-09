@@ -26,9 +26,9 @@ class BotGraph(object):
         
     def heatmap(self, datapoints):
         print(datapoints)
+        
         dimensions = len(datapoints[0][1])        
         numberOfPoints = len(datapoints)
-        
         closenessLimit = int(np.ceil(numberOfPoints * 0.01))
         
         intensity = []
@@ -56,10 +56,10 @@ class BotGraph(object):
         # WRONG
         m = []
         for s in range(len(steps)):
-            m.append((maxArray[s]-minArray[s])/steps[s]+1)
+            m.append(int((maxArray[s]-minArray[s])/steps[s]+1))
         
         intensity = np.zeros(m[::-1])
-        topFive = sorted(datapoints, key=lambda x: x[2]!=0, reverse=True)[:5]
+        topFive = sorted([x if x[2]!=0 else [x[0],x[1],-10000] for x in datapoints], key=lambda x: x[2], reverse=True)[:5]
         topFiveIndex = np.zeros([len(topFive),dimensions])#sorted(range(len(datapoints)), key=lambda k: datapoints[k][2], reverse=True)[:5]
         
         count = 0

@@ -26,4 +26,5 @@ class CreateIndex(object):
                 if len(folder) == 8:
                     print("""<h3>{0}</h3>""".format(folder), file=text_file)
                     for file in os.listdir("Logs/"+folder):
-                        print("""<li><a href="{0}">{1}</a></li>""".format(self.directory + "/Logs/"+folder + "/"+file, file), file=text_file)
+                        if os.path.isfile(self.directory + "/Logs/"+folder + "/"+file):
+                            print("""<li><a href="{0}">{1}</a></li>""".format(self.directory + "/Logs/"+folder + "/"+file, file), file=text_file)

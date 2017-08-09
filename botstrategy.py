@@ -24,9 +24,11 @@ class BotStrategy(object):
         self.currentId = 0
         self.dirty = False
         self.fee = 0.0025
+        self.mamultfactor = details['maFactor']
         self.trial = trial
         self.highMA = details['highMA']
         self.lowMA = details['lowMA']
+        self.openTrades = []
                 
         
     def tick(self,candlestick):
@@ -54,16 +56,22 @@ class BotStrategy(object):
 
     def evaluatePositions(self):
         changeCheck= self.trades.copy()
-        openTrades = []
+        self.openTrades = []
         for trade in self.trades:
             if (trade.status == "OPEN"):
-                openTrades.append(trade)
+                self.openTrades.append(trade)
         
+        
+        self.MACrossover()        
+        
+        if changeCheck != self.trades:
+            self.dirty = True
+    
+    def MACrossover(self):
         fifteenDayMA = self.indicators.movingAverage(self.prices,self.lowMA)
         fiftyDayMA = self.indicators.movingAverage(self.prices,self.highMA)
-        factor = 1.00
-        if (len(openTrades) < self.numSimulTrades):
-            if (fifteenDayMA > fiftyDayMA * factor ):
+        if (len(self.openTrades) < self.numSimulTrades):
+            if (fifteenDayMA > fiftyDayMA * self.mamultfactor ):
                 amountToBuy = self.balance * 0.2 / self.currentPrice
                 fee = amountToBuy * self.currentPrice * self.fee
                 stoploss = self.currentPrice * 0.1
@@ -71,17 +79,15 @@ class BotStrategy(object):
                 self.balance -= (amountToBuy * self.currentPrice + fee)
                 self.trades.append(BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoploss, fee=fee))
 
-        for trade in openTrades:
-            if (fifteenDayMA < fiftyDayMA / factor):
+        for trade in self.openTrades:
+            if (fifteenDayMA < fiftyDayMA / self.mamultfactor):
                 self.balance += trade.volume * self.currentPrice
                 trade.close(self.currentDate, self.currentPrice, "MA Crossover")
             elif (trade.stopLoss):
                 if (trade.entryPrice - self.currentPrice > trade.stopLoss):
                     trade.close(self.currentDate, self.currentPrice, "Stoploss")
                     self.balance += trade.volume * self.currentPrice
-        if changeCheck != self.trades:
-            self.dirty = True
-
+    
     def updateOpenTrades(self):
         for trade in self.trades:
             if (trade.status == "OPEN"):
@@ -110,4 +116,6 @@ class BotStrategy(object):
        self.output.log("Total profit is:"+ str(totalProfit))
        self.output.log("Total balance is:"+ str(self.balance))
        self.output.log("Total fees are:"+ str(totalFees))
-       return totalProfit
+       marketProf = (self.prices[-1] - self.prices[0])/self.prices[0]
+       self.output.log("Market profit is " + str(marketProf))
+       return totalProfit, marketProf
