@@ -19,15 +19,15 @@ class BotStrategy(object):
         self.account = BotAccount(self.functions)
         self.account.createBalancePage()
         self.startingPositions = self.account.getBalance()
-        self.numSimulTrades = details['simTrades']
+        self.numSimulTrades = 1 if not 'simTrades' in details else details['simTrades']
         self.indicators = BotIndicators()
         self.currentId = 0
         self.dirty = False
         self.fee = 0.0025
-        self.mamultfactor = details['maFactor']
+        self.mamultfactor = 1.1 if not 'maFactor' in details else details['maFactor']
         self.trial = trial
-        self.highMA = details['highMA']
-        self.lowMA = details['lowMA']
+        self.highMA = 60 if not 'highMA' in details else details['highMA']
+        self.lowMA = 40 if not 'lowMA' in details else details['lowMA']
         self.openTrades = []
                 
         
@@ -38,16 +38,25 @@ class BotStrategy(object):
         else:
             # LIVE VALUES
             self.currentPrice = float(candlestick['last'])
-        self.prices.append(self.currentPrice)
+        self.prices.append(self.currentPrice)#
+        self.prices = self.prices[-100:]
         
         #self.currentClose = float(candlestick['close'])
         #self.closes.append(self.currentClose)
         self.currentDate = datetime.datetime.fromtimestamp(int(candlestick['date'])).strftime('%Y-%m-%d %H:%M:%S')
         
-        # LOGGING
-        #self.output.log("Date: "+self.currentDate+"\tPrice: "+str(self.currentPrice)+"\tMoving Average: "+str(self.indicators.movingAverage(self.prices,15)))
-
+        
         self.indicators.doDataPoints(self.currentPrice, self.currentDate)
+        
+        lastMax = 0 if len(self.indicators.localMax) == 0 else self.indicators.localMax[-1]
+        lastMin = 0 if len(self.indicators.localMin) == 0 else self.indicators.localMin[-1]
+        
+        # LOGGING
+#        self.output.log("Date: "+self.currentDate+"\tPrice: "+str(self.currentPrice)+"\tLowMA: "+str(self.indicators.movingAverage(self.prices,self.lowMA))+ \
+#        "\tHighMA: "+str(self.indicators.movingAverage(self.prices,self.lowMA))+"\tRSI: "+str(self.indicators.RSI (self.prices))+"\tTrend :"+str(self.indicators.trend)+"\tLast Max "+ \
+#        str(lastMax) + "\tLast Min: "+str(lastMin) + "\tRes: "+str(self.indicators.currentResistance)+"\tSup: "+str(self.indicators.currentSupport))
+        
+        
         self.evaluatePositions()
         self.updateOpenTrades()
         if self.dirty and self.trial == 0:
@@ -95,7 +104,7 @@ class BotStrategy(object):
     
     def showAllTrades(self):
         self.output.logTrades(self.trades, self.origBalance, self.trial)
-        self.indicators.graphIndicators()
+        self.indicators.graphIndicators(self.trades)
     
     
     def closeAllTrades(self):

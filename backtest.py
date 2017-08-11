@@ -28,13 +28,15 @@ chart = ""
 dataoutput = ""
 
 def trial(toPerform, curr):
+    global dataoutput
+    dataoutput = BotDataLog(pair, startTime, endTime)
     num = "_".join(map(str, ("-".join(map(str, a)) for a in toPerform)))
     strategyDetails = {}
     for z in toPerform:
         strategyDetails[z[0]] = z[1]
     print("Starting trial {0}...".format(str(num)))
     strategy = BotStrategy(functions,totalBalance,num, strategyDetails)
-    for candlestick in chart.getPoints():
+    for candlestick in chart.getPoints(): 
         dataoutput.logPoint(candlestick)
         strategy.tick(candlestick)
   
@@ -116,13 +118,14 @@ def main(argv):
     createIndex = CreateIndex(environment)
     
     if not liveTrading:
-        dataoutput = BotDataLog(pair, startTime, endTime)  
+          
         chart.getHistorical(period,startTime,endTime)
         
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = [['highMA',60,100,2],['lowMA',30,60,2],['maFactor',1,2,0.1],['simTrades',1,1,1]]
+        trialDetails = [['highMA',60,60,40],['lowMA',30,30,30],['maFactor',1,1,1],['simTrades',1,1,1]]
+        
         
         performTrial(trialDetails, len(trialDetails), np.zeros(len(trialDetails)))
 #        print(trialResults)
@@ -130,7 +133,7 @@ def main(argv):
         
         
         # N dimensional views
-        botgrapher.heatmap(trialResults)  
+        #botgrapher.heatmap(trialResults)  
         
         # 2 dimensional views
         if len(trialDetails) == 2:
