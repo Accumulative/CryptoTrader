@@ -19,6 +19,17 @@ class BotFunctions(object):
                 continue
         return balData
       
+    def getCurrencies(self):
+        while True:
+            try:
+                tickData = [k for k,v in self.conn.returnTicker().items()]
+                break
+            except Exception as e:
+                self.output.log("Error: " + str(e))
+                time.sleep(20)
+                continue
+        return tickData
+    
     def getNextTick(self, pair):
         while True:
             try:

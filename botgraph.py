@@ -89,7 +89,7 @@ class BotGraph(object):
         # WRONG
         m = []
         for s in range(len(steps)):
-            m.append(int((maxArray[s]-minArray[s])/steps[s]+1))
+            m.append(int((maxArray[s]-minArray[s])/steps[s])+1)
         
         intensity = np.zeros(m[::-1])
         topFive = sorted([x if x[2]!=0 else [x[0],x[1],-10000] for x in datapoints], key=lambda x: x[2], reverse=True)[:5]
