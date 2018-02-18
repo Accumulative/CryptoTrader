@@ -10,12 +10,12 @@ class BotTrade(object):
         self.volume = volume
         self.dateClosed = ""
 #        self.output.log("Trade opened ({0}) at {1}".format(tradeId,currentPrice))
-        if (stopLoss):
-            self.stopLoss = currentPrice - stopLoss
+        self.stopLoss = stopLoss
         self.id = tradeId
         self.functions = functions    
         self.fee = fee
         self.reason = ""
+        self.maxSeen = currentPrice
         
     def close(self, dateC, currentPrice, reason):
         self.status = "CLOSED"

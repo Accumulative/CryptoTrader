@@ -1,5 +1,4 @@
 import sys, getopt
-
 from botchart import BotChart
 from botstrategy import BotStrategy
 from botlog import BotLog
@@ -10,103 +9,19 @@ import time
 import datetime
 import numpy as np
 from botfunctions import BotFunctions
-
 from datehelper import DateHelper
+with open('Currencies/Exchange1.txt','r') as file:
+    currencies = file.read().split("\n")
 
-currencies = ['BTC_LSK',
- 'ETH_GNO',
- 'BTC_BURST',
- 'BTC_GAME',
- 'BTC_BELA',
- 'USDT_NXT',
- 'USDT_STR',
- 'BTC_VRC',
- 'BTC_GNT',
- 'BTC_NOTE',
- 'BTC_ARDR',
- 'BTC_GNO',
- 'BTC_POT',
- 'USDT_REP',
- 'BTC_HUC',
- 'BTC_RADS',
- 'BTC_XMR',
- 'BTC_STEEM',
- 'BTC_VTC',
- 'BTC_ETH',
- 'USDT_ZEC',
- 'BTC_FLO',
- 'ETH_REP',
- 'BTC_BTS',
- 'BTC_BCY',
- 'USDT_XRP',
- 'XMR_NXT',
- 'BTC_AMP',
- 'USDT_XMR',
- 'BTC_SC',
- 'BTC_DGB',
- 'BTC_OMNI',
- 'BTC_NXC',
- 'XMR_DASH',
- 'BTC_FCT',
- 'BTC_FLDC',
- 'USDT_LTC',
- 'BTC_VIA',
- 'BTC_NMC',
- 'ETH_STEEM',
- 'BTC_RIC',
- 'ETH_LSK',
- 'USDT_ETH',
- 'BTC_DOGE',
- 'BTC_EMC2',
- 'BTC_LBC',
- 'BTC_ZEC',
- 'BTC_NAUT',
- 'BTC_ETC',
- 'BTC_EXP',
- 'BTC_LTC',
- 'BTC_BCN',
- 'ETH_ZEC',
- 'BTC_BTCD',
- 'XMR_BTCD',
- 'BTC_NAV',
- 'ETH_ETC',
- 'BTC_SYS',
- 'BTC_PPC',
- 'ETH_GNT',
- 'USDT_BTC',
- 'XMR_MAID',
- 'BTC_DCR',
- 'BTC_PINK',
- 'BTC_DASH',
- 'BTC_STR',
- 'XMR_BLK',
- 'BTC_CLAM',
- 'USDT_ETC',
- 'BTC_XBC',
- 'BTC_MAID',
- 'XMR_LTC',
- 'BTC_XCP',
- 'XMR_BCN',
- 'BTC_BLK',
- 'BTC_GRC',
- 'BTC_SJCX',
- 'BTC_NEOS',
- 'BTC_XRP',
- 'BTC_REP',
- 'BTC_PASC',
- 'USDT_DASH',
- 'XMR_ZEC',
- 'BTC_BTM',
- 'BTC_SBD',
- 'BTC_XVC',
- 'BTC_XPM',
- 'BTC_NXT',
- 'BTC_STRAT',
- 'BTC_XEM']
+from math import isclose
 
 tradeCurrencies = ['BTC_ETC','BTC_DGB','BTC_LTC','BTC_XCP','USDT_BTC']
 
+# Instantiate libraries
 functions = BotFunctions()
+output = BotLog()
+botgrapher = BotGraph()
+
 period = 300
 startTime = ""
 endTime = ""
@@ -115,18 +30,19 @@ prevPair = ""
 totalBalance = 5000
 liveTrading = False    
 environment = 'PI'
-output = BotLog()
-botgrapher = BotGraph()
+total = 1
 trialResults = []
 chart = ""
 dataoutput = ""
-
+now = 0
 def trial(toPerform, curr):
     global dataoutput
-    dataoutput = BotDataLog(pair, startTime, endTime)
+    dataoutput = BotDataLog(pair, startTime, endTime, period)
     global pair
     global chart
     global prevPair
+    global now
+    now += 1
     
     num = "_".join(map(str, ("-".join(map(str, a)) for a in toPerform)))
     strategyDetails = {}
@@ -135,8 +51,8 @@ def trial(toPerform, curr):
         if z[0] == "currency":
             pair = tradeCurrencies[z[1]-1]
         strategyDetails[z[0]] = z[1]
-    print("Starting trial {0}...".format(str(num)))
-    print(pair, prevPair)
+    print("{} | {}/{} | {}".format(str(num),now,total,  str(datetime.datetime.now())[:10]))
+#    print(pair, prevPair)
 #    time.sleep(int(3))
     if pair != prevPair:
         chart = BotChart(functions,pair)
@@ -181,6 +97,7 @@ def main(argv):
     
     output.log("------------STARTING BACKTESTER------------")
     
+#    Handle all the incoming arguments
     try:
         opts, args = getopt.getopt(argv,"hp:c:s:e:b:v:",["period=","currency="])
     except getopt.GetoptError:
@@ -195,7 +112,7 @@ def main(argv):
             if (int(arg) in [30,300,900,1800,7200,14400,86400]):
                 period = int(arg)
             else:
-                print('Poloniex requires periods in 300,900,1800,7200,14400, or 86400 second increments')
+                print('Poloniex requires periods in 300 (5mins),900 (15),1800 (30),7200 (2hr),14400(4hr), or 86400(24hr) second increments')
                 sys.exit(2)
         elif opt in ("-s"):
             startTime = DateHelper.ut(datetime.datetime.strptime(arg, '%d/%m/%Y')) if "/" in arg else arg
@@ -205,6 +122,12 @@ def main(argv):
             endTime = DateHelper.ut(datetime.datetime.strptime(arg, '%d/%m/%Y')) if "/" in arg else arg
         elif opt in ("-b"):
             totalBalance = int(arg)
+        elif opt in ("-c"):
+            if arg in currencies:
+                pair = arg
+            else:
+                print("incorrect pair")
+                sys.exit()
     
     if startTime == "" and endTime == "":
         # Using real
@@ -217,33 +140,36 @@ def main(argv):
         # Practice
         liveTrading = False
     
-    
-    
-    
-    
-    
-    
-    
+#    Instanstiate GUI for results
     createIndex = CreateIndex(environment)
     
     if not liveTrading:
           
-        chart.getHistorical(period,startTime,endTime)
-        
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = [['highMA',60,60,40],['lowMA',30,30,30],['maFactor',1,1,1],['simTrades',1,1,1]]
+        trialDetails = [['stoploss',0.18,0.27,0.01],['maFactor',1.035,1.055,0.0025]]
+#        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
+#        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         
+        
+        global total
+        total = 1
+        for i in trialDetails:
+            add = ((i[2] - i[1] ) / i[3])
+            print(isclose(add,round(add)), add, round(add))
+            if isclose(add,round(add)): # fix this
+                total *= (add+1)
+            else:
+                print("bad params")
+                sys.exit(2)
         performTrial(trialDetails, len(trialDetails), np.zeros(len(trialDetails)))
-#        print(trialResults)
         output.logTrials(trialDetails, trialResults)        
         
+#       N dimensional views
+        botgrapher.heatmap(trialResults)  
         
-        # N dimensional views
-        #botgrapher.heatmap(trialResults)  
-        
-        # 2 dimensional views
+#         2 dimensional views
         if len(trialDetails) == 2:
             botgrapher.graph(trialResults)
         
@@ -259,7 +185,6 @@ def main(argv):
             strategy.tick(currTick)
             dataoutput.logPoint(currTick)
             createIndex.CreatePages()
-#            output.log("Sleeping...")
             time.sleep(int(period))
     
 

@@ -14,7 +14,7 @@ class BotChart(object):
         self.startTime = startTime
         self.endTime = endTime
 
-        if not os.path.exists("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime) + ".txt"):
+        if not os.path.exists("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime)+"_"+str(self.period) + ".txt"):
             self.output.log("Getting chart data (API)...")
             while True:
                 try:
@@ -26,7 +26,7 @@ class BotChart(object):
                     continue
         else:
             self.output.log("Getting chart data (Local)...")
-            self.data = self.__getDataFromFile("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime) + ".txt")
+            self.data = self.__getDataFromFile("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime)+"_"+str(self.period) + ".txt")
 
     def getPoints(self):
         return self.data

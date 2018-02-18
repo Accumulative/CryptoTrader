@@ -69,11 +69,13 @@ margin-left:120px
     def consoleLog(self, m):
         print(m)
     
-    def log(self, m):
+    def log(self, m, c = False):
         self.createFolders()
         with open(self.destinationLog, "a") as text_file:
             print("<p>{0}</p>".format(datetime.datetime.now().strftime('%H:%M:%S') + ": " +m), file=text_file)
-        self.consoleLog(m)
+        
+        if c:
+            self.consoleLog(m)
         
     def logTrades(self, trades, bal, trial):
         self.createFolders()
@@ -136,10 +138,11 @@ margin-left:120px
         <tbody>
             <tr>""", file=text_file)
             sumProfit = 0
+            trades.sort(key=lambda t: t.dateOpened)
             for trade in trades:
                 currProfit = 0 if trade.exitPrice == "" else float(trade.exitPrice - trade.entryPrice)*trade.volume - trade.fee
                 sumProfit += currProfit
-                print("<tr><td>{8}</td><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{9}</td><td>{6:0.7f}</td><td>{7:0.4f}%</td><td>{10}</td></tr>".format(trade.dateOpened, trade.dateClosed, trade.status, trade.volume, trade.entryPrice, trade.exitPrice, currProfit, 0 if trade.exitPrice == "" else ((trade.exitPrice * trade.volume)/(currProfit)-1), trade.id, trade.fee, trade.reason), file=text_file)
+                print("<tr><td>{8}</td><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{9}</td><td>{6:0.7f}</td><td>{7:0.4f}%</td><td>{10}</td></tr>".format(trade.dateOpened, trade.dateClosed, trade.status, trade.volume, trade.entryPrice, trade.exitPrice, currProfit, 0 if (trade.exitPrice == "" or currProfit == 0) else ((trade.exitPrice * trade.volume)/(currProfit)-1), trade.id, trade.fee, trade.reason), file=text_file)
             print("<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>{0:0.7f}</td><td>{1:0.4f}%</td><td></td></tr>".format(sumProfit, sumProfit/bal), file=text_file)
             print("""</tbody>
     </table>

@@ -8,6 +8,7 @@ class BotStrategy(object):
     def __init__(self, functions, balance, trial, details):
         self.output = BotLog()
         self.prices = []
+        self.startPrice = 0
         self.closes = [] # Needed for Momentum Indicator
         self.trades = []
         self.currentPrice = 0
@@ -19,16 +20,30 @@ class BotStrategy(object):
         self.account = BotAccount(self.functions)
         self.account.createBalancePage()
         self.startingPositions = self.account.getBalance()
-        self.numSimulTrades = 1 if not 'simTrades' in details else details['simTrades']
         self.indicators = BotIndicators()
         self.currentId = 0
         self.dirty = False
         self.fee = 0.0025
-        self.mamultfactor = 1.1 if not 'maFactor' in details else details['maFactor']
+        
         self.trial = trial
-        self.highMA = 60 if not 'highMA' in details else details['highMA']
-        self.lowMA = 40 if not 'lowMA' in details else details['lowMA']
+        
         self.openTrades = []
+        
+        self.highMA = 47 if not 'highMA' in details else details['highMA']
+        self.lowMA = 28 if not 'lowMA' in details else details['lowMA']
+        self.mamultfactor = 1 if not 'maFactor' in details else details['maFactor']
+        self.numSimulTrades = 1 if not 'simTrades' in details else details['simTrades']
+        self.stoploss = 0 if not 'stoploss' in details else details['stoploss']
+        
+        self.lowrsi = 30 if not 'lowrsi' in details else details['lowrsi']
+        self.highrsi = 70 if not 'highrsi' in details else details['highrsi']
+        self.rsiperiod = 14 if not 'rsiperiod' in details else details['rsiperiod']
+        
+        self.lookback = 7 if not 'lookback' in details else details['lookback']
+        self.upfactor = 1.1 if not 'upfactor' in details else details['upfactor']
+        self.downfactor = 1.3 if not 'downfactor' in details else details['downfactor']
+        
+        self.trailingstop = 0.1 if not 'trailingstop' in details else details['traiingstop']
                 
         
     def tick(self,candlestick):
@@ -39,6 +54,10 @@ class BotStrategy(object):
             # LIVE VALUES
             self.currentPrice = float(candlestick['last'])
         self.prices.append(self.currentPrice)#
+        
+        if self.startPrice == 0:
+            self.startPrice = self.currentPrice
+        
         self.prices = self.prices[-100:]
         
         #self.currentClose = float(candlestick['close'])
@@ -71,32 +90,30 @@ class BotStrategy(object):
                 self.openTrades.append(trade)
         
         
-        self.MACrossover()        
+        self.MACrossover()     
+#        self.BuyLowSellHigh()   
+#        self.BuyUpShortCrash()
         
         if changeCheck != self.trades:
             self.dirty = True
-    
-    def MACrossover(self):
-        fifteenDayMA = self.indicators.movingAverage(self.prices,self.lowMA)
-        fiftyDayMA = self.indicators.movingAverage(self.prices,self.highMA)
-        if (len(self.openTrades) < self.numSimulTrades):
-            if (fifteenDayMA > fiftyDayMA * self.mamultfactor ):
-                amountToBuy = self.balance * 0.2 / self.currentPrice
-                fee = amountToBuy * self.currentPrice * self.fee
-                stoploss = self.currentPrice * 0.1
-                self.currentId += 1
-                self.balance -= (amountToBuy * self.currentPrice + fee)
-                self.trades.append(BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoploss, fee=fee))
-
-        for trade in self.openTrades:
-            if (fifteenDayMA < fiftyDayMA / self.mamultfactor):
+                
+                
+    def handleStopLosses(self, trade):
+        if (self.stoploss != 0):
+#                print("2", trade.id , self.currentPrice, trade.stopLoss)
+            if (self.currentPrice < trade.stopLoss ):
+                trade.close(self.currentDate, self.currentPrice, "Stoploss")
                 self.balance += trade.volume * self.currentPrice
-                trade.close(self.currentDate, self.currentPrice, "MA Crossover")
-            elif (trade.stopLoss):
-                if (trade.entryPrice - self.currentPrice > trade.stopLoss):
-                    trade.close(self.currentDate, self.currentPrice, "Stoploss")
-                    self.balance += trade.volume * self.currentPrice
-    
+                
+    def handleTrailingStop(self, trade):
+        if (self.stoploss != 0):
+            if(trade.maxSeen < self.currentPrice):
+                trade.maxSeen = self.currentPrice
+                
+            if (self.currentPrice < trade.maxSeen * (1 - self.trailingstop) ):
+                trade.close(self.currentDate, self.currentPrice, "Trailing")
+                self.balance += trade.volume * self.currentPrice
+                
     def updateOpenTrades(self):
         for trade in self.trades:
             if (trade.status == "OPEN"):
@@ -125,6 +142,74 @@ class BotStrategy(object):
        self.output.log("Total profit is:"+ str(totalProfit))
        self.output.log("Total balance is:"+ str(self.balance))
        self.output.log("Total fees are:"+ str(totalFees))
-       marketProf = (self.prices[-1] - self.prices[0])/self.prices[0]
+       marketProf = (self.prices[-1] - self.startPrice)/self.startPrice
        self.output.log("Market profit is " + str(marketProf))
        return totalProfit, marketProf
+   
+#==============================================================================
+# Strategies
+#==============================================================================
+
+    def MACrossover(self):
+        fifteenDayMA = self.indicators.movingAverage(self.prices,self.lowMA)
+        fiftyDayMA = self.indicators.movingAverage(self.prices,self.highMA)
+        if (fifteenDayMA > fiftyDayMA * self.mamultfactor ):
+            amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
+            fee = amountToBuy * self.currentPrice * self.fee
+            if (len(self.openTrades) < self.numSimulTrades and self.balance >= fee + amountToBuy * self.currentPrice + 10):
+                
+                stoplossn = self.currentPrice * (1-self.stoploss)
+                
+                self.currentId += 1
+                self.balance -= (amountToBuy * self.currentPrice + fee)
+                self.trades.append(BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee))
+
+        for trade in self.openTrades:
+            if (fifteenDayMA < fiftyDayMA / self.mamultfactor):
+                self.balance += trade.volume * self.currentPrice
+                trade.close(self.currentDate, self.currentPrice, "MA Crossover")
+            else:
+                #                    self.handleStopLosses(trade)
+                self.handleTrailingStop(trade)
+                    
+    def BuyLowSellHigh(self):
+        rsi = self.indicators.RSI(self.prices,self.rsiperiod)
+        if (rsi < self.lowrsi ):
+            amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
+            fee = amountToBuy * self.currentPrice * self.fee
+            if (len(self.openTrades) < self.numSimulTrades and self.balance >= fee + amountToBuy * self.currentPrice + 10):
+                
+                stoplossn = self.currentPrice * (1-self.stoploss)
+                
+                self.currentId += 1
+                self.balance -= (amountToBuy * self.currentPrice + fee)
+                self.trades.append(BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee))
+
+        for trade in self.openTrades:
+            if (rsi > self.highrsi ):
+                self.balance += trade.volume * self.currentPrice
+                trade.close(self.currentDate, self.currentPrice, "Overbought RSI")
+            else:
+                self.handleStopLosses(trade)
+                
+    def BuyUpShortCrash(self):
+#        SIm trades can only be 1
+        if len(self.prices) > self.lookback:
+            if(self.currentPrice > self.prices[-self.lookback] * self.upfactor):
+                amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
+                fee = amountToBuy * self.currentPrice * self.fee
+                if (self.balance >= fee + amountToBuy * self.currentPrice + 10):
+                    
+                    stoplossn = self.currentPrice * (1-self.stoploss)
+                    
+                    self.currentId += 1
+        #                print("1", self.currentId , self.currentPrice, stoplossn)
+                    self.balance -= (amountToBuy * self.currentPrice + fee)
+                    self.trades.append(BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee))
+    
+            for trade in self.openTrades:
+                if(self.currentPrice < self.prices[-self.lookback] * self.downfactor):
+                    self.balance += trade.volume * self.currentPrice
+                    trade.close(self.currentDate, self.currentPrice, "In crash")
+                else:
+                    self.handleStopLosses(trade)

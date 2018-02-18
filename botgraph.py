@@ -9,24 +9,24 @@ import datetime
 class BotGraph(object):
     def __init__(self):
         self.output = BotLog()
-        self.outputfile = open("output.html",'w')
+        self.outputfile = open("output2.html",'w')
         
 
     def outputGraph(self, datapoints, trades):
         
 
-        currentHTrend = 0.018
-        currentLTrend = 0.018  
+#        currentHTrend = 0.018
+#        currentLTrend = 0.018  
         for points in datapoints:
-            if points['label'] == 'null':
-                points['lowtrend'] = currentLTrend
-                points['hightrend'] = currentHTrend
-            elif 'MAX' in points['label']:
-                currentHTrend = points['hightrend']
-                points['lowtrend'] = currentLTrend
-            elif 'MIN' in points['label']:
-                currentLTrend = points['lowtrend']
-                points['hightrend'] = currentHTrend
+#            if points['label'] == 'null':
+#                points['lowtrend'] = currentLTrend
+#                points['hightrend'] = currentHTrend
+#            elif 'MAX' in points['label']:
+#                currentHTrend = points['hightrend']
+#                points['lowtrend'] = currentLTrend
+#            elif 'MIN' in points['label']:
+#                currentLTrend = points['lowtrend']
+#                points['hightrend'] = currentHTrend
                 
             for trade in trades:
                 if trade.dateOpened == points['date']:
@@ -36,52 +36,56 @@ class BotGraph(object):
         
         self.output.log("Creating graph...")
         self.outputfile.truncate()
-        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotationText'});data.addColumn('number', 'lowtrend');data.addColumn('number', 'hightrend');data.addRows([""")    
+#        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotationText'});data.addColumn('number', 'lowtrend');data.addColumn('number', 'hightrend');data.addRows([""")    
+#   
+#        toWrite = ""
+#        for point in datapoints:
+#            toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell']+",,,")#+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
+#            toWrite += ("],\n")
+#            
+#        toWrite = toWrite[:-2]
+#        self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
+#    
+        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addRows([""")    
    
         toWrite = ""
-        for point in datapoints:
-            toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell']+","+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
+        for point in datapoints[:500]:
+            toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell'])#+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
             toWrite += ("],\n")
             
         toWrite = toWrite[:-2]
         self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
     
-        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotationText'});data.addColumn('number', 'lowtrend');data.addColumn('number', 'hightrend');data.addRows([""")    
-   
-        toWrite = ""
-        for point in datapoints:
-            toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell']+","+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
-            toWrite += ("],\n")
-            
-        toWrite = toWrite[:-2]
-        self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
+       
     
-        
     def heatmap(self, datapoints):
-        print(datapoints)
+#        print(datapoints)
         
         dimensions = len(datapoints[0][1])        
         numberOfPoints = len(datapoints)
         closenessLimit = int(np.ceil(numberOfPoints * 0.01))
         
         intensity = []
-        minArray = [min(datapoints, key=lambda e: int(e[1][i][1]))[1][i][1] for i in range(dimensions)]
-        maxArray = [max(datapoints, key=lambda e: int(e[1][i][1]))[1][i][1] for i in range(dimensions)]
+        minArray = [min(datapoints, key=lambda e: float(e[1][i][1]))[1][i][1] for i in range(dimensions)]
+        maxArray = [max(datapoints, key=lambda e: float(e[1][i][1]))[1][i][1] for i in range(dimensions)]
         
         steps = []
         nextStep = 1
         for j in range(dimensions):
-            steps.append(datapoints[nextStep][1][j][1]-datapoints[nextStep - 1][1][j][1])
-            #print(j,maxArray[j],minArray[j],steps[j])
-            nextStep *= int(round((maxArray[j]-minArray[j])/steps[j],0))+1
-            
+            if nextStep < len(datapoints):
+                steps.append(datapoints[nextStep][1][j][1]-datapoints[nextStep - 1][1][j][1])
+#                print(j,maxArray[j],minArray[j],steps[j])
+                
+                nextStep *= int(round((maxArray[j]-minArray[j])/steps[j],0))+1
+            else:
+                steps.append(1)
         
         data = []
         for j in range(dimensions):
             data.append(np.arange(minArray[j],maxArray[j]+steps[j],steps[j]))
         
         #setup the 2D grid with Numpy
-        mesh = np.meshgrid(*[np.linspace(minArray[i],maxArray[i],int((maxArray[i]-minArray[i])/steps[i])+1) for i in range(dimensions)])
+        mesh = np.meshgrid(*[np.linspace(minArray[i],maxArray[i],float((maxArray[i]-minArray[i])/steps[i])+1) for i in range(dimensions)])
         
         for i in range(dimensions):
             datapoints = sorted(datapoints, key=lambda x: x[1][dimensions-i-1][1])
@@ -98,7 +102,13 @@ class BotGraph(object):
         count = 0
         for index,value in np.ndenumerate( intensity ):
             count += 1
-            intensity[index] = datapoints[count-1][2]
+            pos = index[dimensions-1]
+            for i in range(dimensions-1):
+#                print(index[i], index[i+1], int(round((maxArray[i+1]-minArray[i+1])/steps[i+1],0)) )
+                pos += index[i] + index[i+1] * int(round((maxArray[i+1]-minArray[i+1])/steps[i+1],0))
+            
+#            print(index, pos)
+            intensity[index] = datapoints[pos][2]
             
             for val in range(len(topFive)):
                 if value == topFive[val][2]:
@@ -115,10 +125,11 @@ class BotGraph(object):
                     #print(topFiveIndex[i],index[::-1],np.sqrt(np.sum(np.square(np.subtract(topFiveIndex[i],index[::-1])))))
                     if np.sqrt(np.sum(np.square(np.subtract(topFiveIndex[i],index[::-1])))) <= closenessLimit:
     #                    
-                        if value != 0:
-                            score += value
-                            counter +=1 
-                    
+#                        if value != 0:
+                        score += value
+                        counter +=1 
+                            
+#                if counter != 0:    
                 scoreArray.append((score/counter + topFive[i][2])/2)
         
         winner = max(range(len(scoreArray)), key=lambda k: scoreArray[k])    
@@ -171,3 +182,45 @@ class BotGraph(object):
         fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'_graph.png')   # save the figure to file
         plt.close(fig) 
             
+    def stratGraph(self, datapoints, trades):
+        
+        for points in datapoints:
+            if points['label'] == 'null':
+                points['lowtrend'] = currentLTrend
+                points['hightrend'] = currentHTrend
+            elif 'MAX' in points['label']:
+                currentHTrend = points['hightrend']
+                points['lowtrend'] = currentLTrend
+            elif 'MIN' in points['label']:
+                currentLTrend = points['lowtrend']
+                points['hightrend'] = currentHTrend
+                
+            for trade in trades:
+                if trade.dateOpened == points['date']:
+                    points['buy'] = "'buy'"
+                elif trade.dateClosed == points['date']:
+                    points['sell'] = "'sell'"
+        
+        self.output.log("Creating graph...")
+        self.outputfile.truncate()
+        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotationText'});data.addColumn('number', 'lowtrend');data.addColumn('number', 'hightrend');data.addRows([""")    
+   
+        toWrite = ""
+        for point in datapoints:
+            toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell']+","+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
+            toWrite += ("],\n")
+            
+        toWrite = toWrite[:-2]
+        self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
+    
+        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotationText'});data.addColumn('number', 'lowtrend');data.addColumn('number', 'hightrend');data.addRows([""")    
+   
+        toWrite = ""
+        for point in datapoints:
+            toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell']+","+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
+            toWrite += ("],\n")
+            
+        toWrite = toWrite[:-2]
+        self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
+    
+        
