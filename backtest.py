@@ -22,6 +22,8 @@ functions = BotFunctions()
 output = BotLog()
 botgrapher = BotGraph()
 
+numberOfStrats = 3
+strat = 1
 period = 300
 startTime = ""
 endTime = ""
@@ -58,7 +60,7 @@ def trial(toPerform, curr):
         chart = BotChart(functions,pair)
         chart.getHistorical(period,startTime,endTime)
         prevPair = pair
-    strategy = BotStrategy(functions,totalBalance,num, strategyDetails)
+    strategy = BotStrategy(functions,totalBalance,num, strategyDetails, strat)
     for candlestick in chart.getPoints(): 
         dataoutput.logPoint(candlestick)
         strategy.tick(candlestick)
@@ -94,19 +96,20 @@ def main(argv):
     global environment
     global chart
     global dataoutput
+    global strat
     
     output.log("------------STARTING BACKTESTER------------")
     
 #    Handle all the incoming arguments
     try:
-        opts, args = getopt.getopt(argv,"hp:c:s:e:b:v:",["period=","currency="])
+        opts, args = getopt.getopt(argv,"hp:c:s:e:b:v:u:",["period=","currency="])
     except getopt.GetoptError:
-        print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -b <balance> -v <environment>')
+        print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment>')
         sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':
-            print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -b <balance> -v <environment>')
+            print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment>')
             sys.exit()
         elif opt in ("-p", "--period"):
             if (int(arg) in [30,300,900,1800,7200,14400,86400]):
@@ -128,6 +131,12 @@ def main(argv):
             else:
                 print("incorrect pair")
                 sys.exit()
+        elif opt in ("-u"):
+            if len(list(set([str(i+1) for i in range(numberOfStrats)]) & set(str(arg).split(',')))) > 0:
+                strat = arg
+            else:
+                print("Bad strat params")
+                sys.exit()
     
     if startTime == "" and endTime == "":
         # Using real
@@ -148,7 +157,7 @@ def main(argv):
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
-        trialDetails = [['stoploss',0.18,0.27,0.01],['maFactor',1.035,1.055,0.0025]]
+        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         
@@ -178,7 +187,7 @@ def main(argv):
         chart = BotChart(functions,pair)
         dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE")  
         strategyDetails = {'highMA':50,'lowMA':20,'maFactor':1,'simTrades':1}
-        strategy = BotStrategy(functions,totalBalance,0, strategyDetails)
+        strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat)
         while True:
             currTick = dict(chart.getNext())
             currTick['date'] = str(DateHelper.ut(datetime.datetime.now()))

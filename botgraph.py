@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from botlog import BotLog
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from datehelper import DateHelper
@@ -147,6 +150,19 @@ class BotGraph(object):
             #plt.show()
             fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'_heatmap.png')   # save the figure to file
             plt.close(fig) 
+            
+        x = [point[2] for point in datapoints]
+        fig, axarr = plt.subplots(dimensions, sharex=True)
+        for k in range(dimensions):
+#            fig = plt.figure()
+            y = [x[1][k][1] for x in datapoints]
+            
+            axarr[k].scatter(x, y)
+            axarr[k].set_title(datapoints[0][1][k][0])
+            
+        fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'graph.png')   # save the figure to file
+#        plt.close(fig) 
+
             
     def graph(self, datapoints):
         

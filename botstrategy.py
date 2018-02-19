@@ -5,7 +5,7 @@ import datetime
 from botaccount import BotAccount
 
 class BotStrategy(object):
-    def __init__(self, functions, balance, trial, details):
+    def __init__(self, functions, balance, trial, details, strat):
         self.output = BotLog()
         self.prices = []
         self.startPrice = 0
@@ -25,6 +25,8 @@ class BotStrategy(object):
         self.dirty = False
         self.fee = 0.0025
         
+        self.strat = strat
+        
         self.trial = trial
         
         self.openTrades = []
@@ -43,7 +45,7 @@ class BotStrategy(object):
         self.upfactor = 1.1 if not 'upfactor' in details else details['upfactor']
         self.downfactor = 1.3 if not 'downfactor' in details else details['downfactor']
         
-        self.trailingstop = 0.1 if not 'trailingstop' in details else details['traiingstop']
+        self.trailingstop = 0.1 if not 'trailingstop' in details else details['trailingstop']
                 
         
     def tick(self,candlestick):
@@ -89,10 +91,12 @@ class BotStrategy(object):
             if (trade.status == "OPEN"):
                 self.openTrades.append(trade)
         
-        
-        self.MACrossover()     
-#        self.BuyLowSellHigh()   
-#        self.BuyUpShortCrash()
+        if '1' in self.strat:
+            self.MACrossover()
+        if '2' in self.strat:
+            self.BuyLowSellHigh()   
+        if '3' in self.strat:
+            self.BuyUpShortCrash()
         
         if changeCheck != self.trades:
             self.dirty = True
@@ -106,7 +110,7 @@ class BotStrategy(object):
                 self.balance += trade.volume * self.currentPrice
                 
     def handleTrailingStop(self, trade):
-        if (self.stoploss != 0):
+        if (self.trailingstop != 0):
             if(trade.maxSeen < self.currentPrice):
                 trade.maxSeen = self.currentPrice
                 
@@ -150,6 +154,7 @@ class BotStrategy(object):
 # Strategies
 #==============================================================================
 
+#    Strat 1
     def MACrossover(self):
         fifteenDayMA = self.indicators.movingAverage(self.prices,self.lowMA)
         fiftyDayMA = self.indicators.movingAverage(self.prices,self.highMA)
@@ -171,7 +176,9 @@ class BotStrategy(object):
             else:
                 #                    self.handleStopLosses(trade)
                 self.handleTrailingStop(trade)
-                    
+                
+                
+#   Strat 2
     def BuyLowSellHigh(self):
         rsi = self.indicators.RSI(self.prices,self.rsiperiod)
         if (rsi < self.lowrsi ):
@@ -191,7 +198,9 @@ class BotStrategy(object):
                 trade.close(self.currentDate, self.currentPrice, "Overbought RSI")
             else:
                 self.handleStopLosses(trade)
-                
+          
+            
+#    Strat 3
     def BuyUpShortCrash(self):
 #        SIm trades can only be 1
         if len(self.prices) > self.lookback:
