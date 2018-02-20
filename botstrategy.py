@@ -3,6 +3,7 @@ from botindicators import BotIndicators
 from bottrade import BotTrade
 import datetime
 from botaccount import BotAccount
+from machinelearning import maclearn
 
 class BotStrategy(object):
     def __init__(self, functions, balance, trial, details, strat):
@@ -24,8 +25,15 @@ class BotStrategy(object):
         self.currentId = 0
         self.dirty = False
         self.fee = 0.0025
-        
+        self.mcl = 0
         self.strat = strat
+        
+        self.lookback = 10 if not 'lookback' in details else details['lookback']
+        self.learnProgTotal = 100 if not 'learnProgTotal' in details else details['learnProgTotal']
+        self.advance = 5 if not 'advance' in details else details['advance']
+        
+        if(self.strat == '4'):
+            self.mcl = maclearn(self.learnProgTotal, self.lookback, 12)
         
         self.trial = trial
         
@@ -41,12 +49,12 @@ class BotStrategy(object):
         self.highrsi = 70 if not 'highrsi' in details else details['highrsi']
         self.rsiperiod = 14 if not 'rsiperiod' in details else details['rsiperiod']
         
-        self.lookback = 7 if not 'lookback' in details else details['lookback']
         self.upfactor = 1.1 if not 'upfactor' in details else details['upfactor']
         self.downfactor = 1.3 if not 'downfactor' in details else details['downfactor']
         
         self.trailingstop = 0.1 if not 'trailingstop' in details else details['trailingstop']
                 
+        
         
     def tick(self,candlestick):
         if 'weightedAverage' in candlestick:
@@ -97,6 +105,8 @@ class BotStrategy(object):
             self.BuyLowSellHigh()   
         if '3' in self.strat:
             self.BuyUpShortCrash()
+        if '4' in self.strat:
+            self.LearnPatterns()
         
         if changeCheck != self.trades:
             self.dirty = True
@@ -222,3 +232,29 @@ class BotStrategy(object):
                     trade.close(self.currentDate, self.currentPrice, "In crash")
                 else:
                     self.handleStopLosses(trade)
+                    
+                    
+#    Strat 4
+    def LearnPatterns(self):
+        
+        toBuy = self.mcl.calc(self.prices)
+        if toBuy == "Buy":
+            amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
+            fee = amountToBuy * self.currentPrice * self.fee
+            if (self.balance >= fee + amountToBuy * self.currentPrice + 10):
+                stoplossn = self.currentPrice * (1-self.stoploss)
+                    
+                self.currentId += 1
+                self.balance -= (amountToBuy * self.currentPrice + fee)
+                self.trades.append(BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee, expiry = self.advance))
+                
+        for trade in self.openTrades:
+            if trade.expiry != 0:
+                if trade.age >= trade.expiry:
+                    self.balance += trade.volume * self.currentPrice
+                    trade.close(self.currentDate, self.currentPrice, "Expired")
+                else:
+                    trade.age += 1
+                        
+            
+        

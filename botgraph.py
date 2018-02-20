@@ -5,7 +5,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
+#from mpl_toolkits.mplot3d import Axes3D
 from datehelper import DateHelper
 import datetime
 
@@ -152,7 +152,7 @@ class BotGraph(object):
             plt.close(fig) 
             
         x = [point[2] for point in datapoints]
-        fig, axarr = plt.subplots(dimensions, sharex=True)
+        fig, axarr = plt.subplots(dimensions, sharex=True, squeeze=False)
         for k in range(dimensions):
 #            fig = plt.figure()
             y = [x[1][k][1] for x in datapoints]

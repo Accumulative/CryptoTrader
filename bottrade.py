@@ -1,12 +1,14 @@
 from botlog import BotLog
 
 class BotTrade(object):
-    def __init__(self, functions, dateO, volume, currentPrice,tradeId,stopLoss=0, fee=0):
+    def __init__(self, functions, dateO, volume, currentPrice,tradeId,stopLoss=0, fee=0, expiry = 0):
         self.output = BotLog()
         self.status = "OPEN"
         self.entryPrice = currentPrice
+        self.expiry = 0
         self.exitPrice = ""
         self.dateOpened = dateO
+        self.age = 0
         self.volume = volume
         self.dateClosed = ""
 #        self.output.log("Trade opened ({0}) at {1}".format(tradeId,currentPrice))
