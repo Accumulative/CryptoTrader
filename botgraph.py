@@ -5,7 +5,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
-#from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D
 from datehelper import DateHelper
 import datetime
 
@@ -151,17 +151,17 @@ class BotGraph(object):
             fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'_heatmap.png')   # save the figure to file
             plt.close(fig) 
             
-        x = [point[2] for point in datapoints]
-        fig, axarr = plt.subplots(dimensions, sharex=True, squeeze=False)
-        for k in range(dimensions):
-#            fig = plt.figure()
-            y = [x[1][k][1] for x in datapoints]
-            
-            axarr[k].scatter(x, y)
-            axarr[k].set_title(datapoints[0][1][k][0])
-            
-        fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'graph.png')   # save the figure to file
-#        plt.close(fig) 
+            x = [point[2] for point in datapoints]
+            fig, axarr = plt.subplots(dimensions, sharex=True)
+            for k in range(dimensions):
+    #            fig = plt.figure()
+                y = [x[1][k][1] for x in datapoints]
+                
+                axarr[k].scatter(x, y)
+                axarr[k].set_title(datapoints[0][1][k][0])
+                
+            fig.savefig("Graphs/"+str(DateHelper.ut(datetime.datetime.now()))+'graph.png')   # save the figure to file
+    #        plt.close(fig) 
 
             
     def graph(self, datapoints):
@@ -187,8 +187,8 @@ class BotGraph(object):
         
         
         fig = plt.figure()
-        ax = fig.add_subplot(1,1,1, projection='3d')
-        
+        fig.add_subplot(1,1,1, projection='3d')
+        ax = Axes3D(fig)
         ax.plot(x, y, intensity)
         
         ax.set_xlabel('X Label')

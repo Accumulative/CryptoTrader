@@ -158,7 +158,7 @@ def main(argv):
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
 #        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
-        trialDetails= [['lookback',5,15,2],['advance',5,15,2]]
+        trialDetails= [['lookback',10,30,2],['advance',15,35,2]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         
