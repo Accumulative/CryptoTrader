@@ -39,8 +39,9 @@ dataoutput = ""
 now = 0
 def trial(toPerform, curr):
     global dataoutput
-    dataoutput = BotDataLog(pair, startTime, endTime, period)
     global pair
+    dataoutput = BotDataLog(pair, startTime, endTime, period)
+    
     global chart
     global prevPair
     global now
@@ -158,7 +159,7 @@ def main(argv):
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
 #        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
-        trialDetails= [['lookback',10,30,2],['advance',15,35,2]]
+        trialDetails= [['howSimReq', 0.3, 0.9, 0.2]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         

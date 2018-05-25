@@ -28,16 +28,19 @@ class BotStrategy(object):
         self.mcl = 0
         self.strat = strat
         
-        self.lookback = 10 if not 'lookback' in details else details['lookback']
-        self.learnProgTotal = 100 if not 'learnProgTotal' in details else details['learnProgTotal']
-        self.advance = 5 if not 'advance' in details else details['advance']
+        self.lookback = 14 if not 'lookback' in details else details['lookback']
+        self.learnProgTotal = 300 if not 'learnProgTotal' in details else details['learnProgTotal']
+        self.advance = 35 if not 'advance' in details else details['advance']
+        self.howSimReq = 80 if not 'howSimReq' in details else details['howSimReq']
+        self.learnLimit = 500 if not 'learnLimit' in details else details['learnLimit']
         
         if(self.strat == '4'):
-            self.mcl = maclearn(self.learnProgTotal, self.lookback, 12)
+            self.mcl = maclearn(self.learnProgTotal, self.lookback, self.advance, self.howSimReq, self.learnLimit)
         
         self.trial = trial
         
         self.openTrades = []
+        
         
         self.highMA = 47 if not 'highMA' in details else details['highMA']
         self.lowMA = 28 if not 'lowMA' in details else details['lowMA']
@@ -241,13 +244,22 @@ class BotStrategy(object):
         if toBuy == "Buy":
             amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
             fee = amountToBuy * self.currentPrice * self.fee
-            if (self.balance >= fee + amountToBuy * self.currentPrice + 10):
+            if (self.balance >= fee + amountToBuy * self.currentPrice + 10) and (fee + amountToBuy * self.currentPrice + 10) > 100:
                 stoplossn = self.currentPrice * (1-self.stoploss)
                     
                 self.currentId += 1
                 self.balance -= (amountToBuy * self.currentPrice + fee)
-                self.trades.append(BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee, expiry = self.advance))
+                #print(self.balance, amountToBuy, self.currentPrice, fee, self.currentId)
+                self.trades.append((BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee, expiry = self.advance)))
                 
+                
+        elif toBuy == "Sell"and len(self.trades) > 0:
+            if self.trades[-1].status != "CLOSED":
+                self.balance += self.trades[-1].volume * self.currentPrice
+                #print(self.balance, self.trades[-1].volume, self.currentPrice, '', self.trades[-1].id)
+                self.trades[-1].close(self.currentDate, self.currentPrice, "Sell indicator")
+            
+            
         for trade in self.openTrades:
             if trade.expiry != 0:
                 if trade.age >= trade.expiry:

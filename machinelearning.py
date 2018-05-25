@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import math
 
 class maclearn(object):
-    def __init__(self, learnProgTotal, lookback, advance):
+    def __init__(self, learnProgTotal, lookback, advance, howSimReq, learnLimit):
 
         self.lookback = lookback
         self.learnProg = 0
@@ -11,7 +12,9 @@ class maclearn(object):
         self.inAdvance = advance
         self.patternAr = []
         self.performanceAr = []
-        self.learnLimit = 300
+        self.learnLimit = learnLimit
+        self.howSimReq = howSimReq
+        self.minPat = 6
     
     def calc(self,prices):
         
@@ -21,7 +24,6 @@ class maclearn(object):
         else:
             if len(self.patternAr) > self.learnLimit:
                 self.patternAr = list(self.patternAr[1:])
-                self.performanceAr = list(self.performanceAr[1:])
             return self.patternRecognition(prices)
     
     def percentChange(self,x,y):
@@ -30,6 +32,21 @@ class maclearn(object):
         else:
             return 0
     
+#    def getLinearity(self, X, Y):
+#        diff = np.subtract(X, Y)
+#        c = np.arange(1, len(diff)+1)
+#        sumX2 = np.sum(np.square(c))
+#        sumY2 = np.sum(np.square(diff))
+#        sumXY = np.sum(np.multiply(c,diff))
+#        sumX = np.sum(c)
+#        sumY = np.sum(diff)
+#        n = len(diff)
+#        r = (n * sumXY - sumX * sumY) / (math.sqrt(n * sumX2 - sumX * sumX) * math.sqrt(n * sumY2 - sumY * sumY))
+#        return r
+    def getLinearity(self, X, Y):
+        z, residuals, rank, singular_values, rcond = np.polyfit(X, Y, 1, full=True)
+        return residuals[0]
+        
     def patternStorage(self,prices):
     
         learntPattern = []
@@ -43,7 +60,7 @@ class maclearn(object):
     
             outcomeRange = prices[-self.inAdvance+1:]
 #            Should weight/change outcome range..
-            currentPoint = prices[-1]
+            currentPoint = prices[-self.inAdvance]
     
             try:
                 avgOutcome = sum(outcomeRange) / len(outcomeRange)
@@ -52,46 +69,44 @@ class maclearn(object):
                 avgOutcome = 0
             futureOutcome = self.percentChange(currentPoint, avgOutcome)
     
-            self.patternAr.append(learntPattern)
-            self.performanceAr.append(futureOutcome)
+            self.patternAr.append([learntPattern, futureOutcome])
     
     
     def patternRecognition(self, prices):
     
-        patForRec = []
+        patForRec = np.zeros(self.lookback)
         for i in range(0,self.lookback):
-            patForRec.append(self.percentChange(prices[-1],prices[-i]))
+            patForRec[i] = self.percentChange(prices[-i], prices[-1])
                
         
             
-        predictedOutcomesAr = []
+#        predictedOutcomesAr = []
         plotPatAr = []
-        simArray = np.zeros(self.lookback)
-    
+        n = len(patForRec)
         for eachPattern in self.patternAr:
-            howSim = 101
-            for i in range(0,self.lookback):
-                simArray[i] = 100.00 - abs(self.percentChange(eachPattern[i], patForRec[i]))
-                if(simArray[i] < 0):
-                    howSim = 0
-                    break
-    
-            if howSim != 0:
-                howSim = sum(simArray)/len(simArray)
-    
+            simArray = []
+            for x in range(self.minPat, n + 1):
+                c = eachPattern[0][n-x:]
+                d = patForRec[n-x:]
+                lin = self.getLinearity(c,d)
+                simArray.append([x, lin, lin / math.sqrt(x)])
+            
+            simArray.sort(key=lambda xa: abs(xa[2]))
                 
-            if howSim > 80:
-                plotPatAr.append(eachPattern)
+            if abs(simArray[-1][1]) > self.howSimReq:
+                plotPatAr.append([eachPattern[0][n-simArray[-1][0]:], eachPattern[1]])
+#        if(len(plotPatAr) != 0):
+#            print(plotPatAr, patForRec)
     
         predArray = []
         if len(plotPatAr) > 0:
             for eachPatt in range(0,len(plotPatAr)):
     
-                if self.performanceAr[eachPatt] > patForRec[self.lookback-1]:
+                if plotPatAr[eachPatt][1] > 0: #patForRec[self.lookback-1]: price[-1] / price[-2] < price
                     predArray.append(1.000)
                 else:
                     predArray.append(-1.000)
-                predictedOutcomesAr.append(self.performanceAr[eachPatt])
+#                predictedOutcomesAr.append(self.performanceAr[eachPatt][1])
                 
                 
             predictionAverage = sum(predArray) / len(predArray)
@@ -100,4 +115,5 @@ class maclearn(object):
                 return "Buy"
             elif predictionAverage < -0.5:
                 return "Sell"
+        return 'nothing'
             
