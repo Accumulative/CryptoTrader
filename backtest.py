@@ -61,7 +61,7 @@ def trial(toPerform, curr):
         chart = BotChart(functions,pair)
         chart.getHistorical(period,startTime,endTime)
         prevPair = pair
-    strategy = BotStrategy(functions,totalBalance,num, strategyDetails, strat)
+    strategy = BotStrategy(functions, totalBalance, num, strategyDetails, strat)
     for candlestick in chart.getPoints(): 
         dataoutput.logPoint(candlestick)
         strategy.tick(candlestick)
@@ -187,8 +187,8 @@ def main(argv):
         createIndex.CreatePages()
     else:
         chart = BotChart(functions,pair)
-        dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE")  
-        strategyDetails = {'highMA':50,'lowMA':20,'maFactor':1,'simTrades':1}
+        dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE", period)  
+        strategyDetails = {'howSimReq':0.9}
         strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat)
         while True:
             currTick = dict(chart.getNext())

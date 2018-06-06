@@ -250,7 +250,7 @@ class BotStrategy(object):
                 self.currentId += 1
                 self.balance -= (amountToBuy * self.currentPrice + fee)
                 #print(self.balance, amountToBuy, self.currentPrice, fee, self.currentId)
-                self.trades.append((BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee, expiry = self.advance)))
+                self.trades.append((BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
                 
                 
         elif toBuy == "Sell"and len(self.trades) > 0:
