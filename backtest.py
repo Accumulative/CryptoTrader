@@ -103,14 +103,14 @@ def main(argv):
     
 #    Handle all the incoming arguments
     try:
-        opts, args = getopt.getopt(argv,"hp:c:s:e:b:v:u:",["period=","currency="])
+        opts, args = getopt.getopt(argv,"hp:c:s:e:b:v:u:l:",["period=","currency="])
     except getopt.GetoptError:
-        print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment>')
+        print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment> -l <live>')
         sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':
-            print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment>')
+            print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment> -l <live>')
             sys.exit()
         elif opt in ("-p", "--period"):
             if (int(arg) in [30,300,900,1800,7200,14400,86400]):
@@ -126,6 +126,8 @@ def main(argv):
             endTime = DateHelper.ut(datetime.datetime.strptime(arg, '%d/%m/%Y')) if "/" in arg else arg
         elif opt in ("-b"):
             totalBalance = int(arg)
+        elif opt in ("-l"):
+            liveTrading = True if int(arg)==1 else False
         elif opt in ("-c"):
             if arg in currencies:
                 pair = arg
@@ -138,17 +140,6 @@ def main(argv):
             else:
                 print("Bad strat params")
                 sys.exit()
-    
-    if startTime == "" and endTime == "":
-        # Using real
-        liveTrading = True
-    elif (startTime == "" and endTime != "") or (startTime != "" and endTime == ""):
-        # Error
-        print('Cant just use one date. Require two.')
-        sys.exit(2)
-    else:
-        # Practice
-        liveTrading = False
     
 #    Instanstiate GUI for results
     createIndex = CreateIndex(environment)
@@ -190,12 +181,25 @@ def main(argv):
         dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE", period)  
         strategyDetails = {'howSimReq':0.9}
         strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat)
+        if(strat == "4"):
+            print("Pretraining STARTED")
+            if(endTime == ""):
+                endTime = DateHelper.ut(datetime.datetime.now())
+            chart.getHistorical(period,startTime,endTime)
+            num_x = 0
+            for candlestick in chart.getPoints(): 
+                num_x = num_x + 1
+                if(num_x % 10 == 0):
+                    print(str(DateHelper.dt(int(candlestick['date']))))
+                strategy.tick(candlestick, True)
+            print("Pretraining finished")
         while True:
             currTick = dict(chart.getNext())
             currTick['date'] = str(DateHelper.ut(datetime.datetime.now()))
             strategy.tick(currTick)
             dataoutput.logPoint(currTick)
             createIndex.CreatePages()
+            print('{}: Sleeping ...'.format(currTick['date']))
             time.sleep(int(period))
     
 

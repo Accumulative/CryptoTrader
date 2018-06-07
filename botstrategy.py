@@ -29,10 +29,10 @@ class BotStrategy(object):
         self.strat = strat
         
         self.lookback = 14 if not 'lookback' in details else details['lookback']
-        self.learnProgTotal = 300 if not 'learnProgTotal' in details else details['learnProgTotal']
+        self.learnProgTotal = 500 if not 'learnProgTotal' in details else details['learnProgTotal']
         self.advance = 35 if not 'advance' in details else details['advance']
         self.howSimReq = 80 if not 'howSimReq' in details else details['howSimReq']
-        self.learnLimit = 500 if not 'learnLimit' in details else details['learnLimit']
+        self.learnLimit = 700 if not 'learnLimit' in details else details['learnLimit']
         
         if(self.strat == '4'):
             self.mcl = maclearn(self.learnProgTotal, self.lookback, self.advance, self.howSimReq, self.learnLimit)
@@ -59,7 +59,7 @@ class BotStrategy(object):
                 
         
         
-    def tick(self,candlestick):
+    def tick(self,candlestick, training=False):
         if 'weightedAverage' in candlestick:
             # HISTORIC VALUES
             self.currentPrice = float(candlestick['weightedAverage'])
@@ -80,8 +80,8 @@ class BotStrategy(object):
         
         self.indicators.doDataPoints(self.currentPrice, self.currentDate)
         
-        lastMax = 0 if len(self.indicators.localMax) == 0 else self.indicators.localMax[-1]
-        lastMin = 0 if len(self.indicators.localMin) == 0 else self.indicators.localMin[-1]
+        #lastMax = 0 if len(self.indicators.localMax) == 0 else self.indicators.localMax[-1]
+        #lastMin = 0 if len(self.indicators.localMin) == 0 else self.indicators.localMin[-1]
         
         # LOGGING
 #        self.output.log("Date: "+self.currentDate+"\tPrice: "+str(self.currentPrice)+"\tLowMA: "+str(self.indicators.movingAverage(self.prices,self.lowMA))+ \
@@ -89,13 +89,14 @@ class BotStrategy(object):
 #        str(lastMax) + "\tLast Min: "+str(lastMin) + "\tRes: "+str(self.indicators.currentResistance)+"\tSup: "+str(self.indicators.currentSupport))
         
         
-        self.evaluatePositions()
-        self.updateOpenTrades()
-        if self.dirty and self.trial == 0:
-            self.showAllTrades()
-            self.dirty = False
+        self.evaluatePositions(training)
+        if not training:
+            self.updateOpenTrades()
+            if self.dirty and self.trial == 0:
+                self.showAllTrades()
+                self.dirty = False
 
-    def evaluatePositions(self):
+    def evaluatePositions(self, training):
         changeCheck= self.trades.copy()
         self.openTrades = []
         for trade in self.trades:
@@ -109,7 +110,7 @@ class BotStrategy(object):
         if '3' in self.strat:
             self.BuyUpShortCrash()
         if '4' in self.strat:
-            self.LearnPatterns()
+            self.LearnPatterns(training)
         
         if changeCheck != self.trades:
             self.dirty = True
@@ -238,35 +239,36 @@ class BotStrategy(object):
                     
                     
 #    Strat 4
-    def LearnPatterns(self):
+    def LearnPatterns(self, training):
         
         toBuy = self.mcl.calc(self.prices)
-        if toBuy == "Buy":
-            amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
-            fee = amountToBuy * self.currentPrice * self.fee
-            if (self.balance >= fee + amountToBuy * self.currentPrice + 10) and (fee + amountToBuy * self.currentPrice + 10) > 100:
-                stoplossn = self.currentPrice * (1-self.stoploss)
+        if not training:
+            if toBuy == "Buy":
+                amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
+                fee = amountToBuy * self.currentPrice * self.fee
+                if (self.balance >= fee + amountToBuy * self.currentPrice + 10) and (fee + amountToBuy * self.currentPrice + 10) > 100:
+                    stoplossn = self.currentPrice * (1-self.stoploss)
+                        
+                    self.currentId += 1
+                    self.balance -= (amountToBuy * self.currentPrice + fee)
+                    #print(self.balance, amountToBuy, self.currentPrice, fee, self.currentId)
+                    self.trades.append((BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
                     
-                self.currentId += 1
-                self.balance -= (amountToBuy * self.currentPrice + fee)
-                #print(self.balance, amountToBuy, self.currentPrice, fee, self.currentId)
-                self.trades.append((BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,self.currentId,stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
+                    
+            elif toBuy == "Sell"and len(self.trades) > 0:
+                if self.trades[-1].status != "CLOSED":
+                    self.balance += self.trades[-1].volume * self.currentPrice
+                    #print(self.balance, self.trades[-1].volume, self.currentPrice, '', self.trades[-1].id)
+                    self.trades[-1].close(self.currentDate, self.currentPrice, "Sell indicator")
                 
                 
-        elif toBuy == "Sell"and len(self.trades) > 0:
-            if self.trades[-1].status != "CLOSED":
-                self.balance += self.trades[-1].volume * self.currentPrice
-                #print(self.balance, self.trades[-1].volume, self.currentPrice, '', self.trades[-1].id)
-                self.trades[-1].close(self.currentDate, self.currentPrice, "Sell indicator")
-            
-            
-        for trade in self.openTrades:
-            if trade.expiry != 0:
-                if trade.age >= trade.expiry:
-                    self.balance += trade.volume * self.currentPrice
-                    trade.close(self.currentDate, self.currentPrice, "Expired")
-                else:
-                    trade.age += 1
+            for trade in self.openTrades:
+                if trade.expiry != 0:
+                    if trade.age >= trade.expiry:
+                        self.balance += trade.volume * self.currentPrice
+                        trade.close(self.currentDate, self.currentPrice, "Expired")
+                    else:
+                        trade.age += 1
                         
             
         
