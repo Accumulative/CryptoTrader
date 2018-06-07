@@ -194,13 +194,18 @@ def main(argv):
                 strategy.tick(candlestick, True)
             print("Pretraining finished")
         while True:
+            start = time.time()
             currTick = dict(chart.getNext())
             currTick['date'] = str(DateHelper.ut(datetime.datetime.now()))
             strategy.tick(currTick)
             dataoutput.logPoint(currTick)
             createIndex.CreatePages()
             print('{}: Sleeping ...'.format(currTick['date']))
-            time.sleep(int(period))
+            end = time.time()
+            if int(period)-(end-start) > 0:
+                time.sleep(int(period)-(end-start))
+            else:
+                print("Calculation took too long. Continuing to next tick...")
     
 
 
