@@ -1,3 +1,7 @@
+import sys
+sys.path.append("Models")
+sys.path.append("Loggers")
+sys.path.append("Other")
 from botlog import BotLog
 from botindicators import BotIndicators
 from bottrade import BotTrade

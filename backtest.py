@@ -1,4 +1,10 @@
 import sys, getopt
+
+sys.path.append("Strategy")
+sys.path.append("Loggers")
+sys.path.append("Other")
+sys.path.append("Helpers")
+
 from botchart import BotChart
 from botstrategy import BotStrategy
 from botlog import BotLog
@@ -8,7 +14,7 @@ from createindex import CreateIndex
 import time
 import datetime
 import numpy as np
-from botfunctions import BotFunctions
+from poloniex_functions import BotFunctions
 from datehelper import DateHelper
 with open('Currencies/Exchange1.txt','r') as file:
     currencies = file.read().split("\n")

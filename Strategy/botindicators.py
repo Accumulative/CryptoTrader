@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append("Visualisation")
+
 import numpy as np
 from botgraph import BotGraph
 

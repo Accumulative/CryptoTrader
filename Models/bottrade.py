@@ -1,9 +1,14 @@
+import sys
+sys.path.append("Connections")
+sys.path.append("Loggers")
+from mysql_database import BotFunctions
 from botlog import BotLog
 from ifttt import ifttt
 
 class BotTrade(object):
     def __init__(self, functions, dateO, volume, currentPrice,tradeId,stopLoss=0, fee=0, expiry = 0, log=1):
         self.output = BotLog()
+        self.sql_log = BotFunctions()
         self.status = "OPEN"
         self.entryPrice = currentPrice
         self.expiry = expiry
@@ -30,6 +35,7 @@ class BotTrade(object):
         self.reason = reason
         if self.log == 0:
             ifttt.log(self.id, currentPrice, self.volume)
+            self.sql_log.createTrade(self)
 #        self.output.log("Trade closed ({0}): {1} at {2}".format(self.id,self.volume, self.exitPrice))
 
     def tick(self, currentPrice):

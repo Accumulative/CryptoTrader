@@ -1,5 +1,7 @@
-
-from botfunctions import BotFunctions
+import sys
+sys.path.append("Connections")
+sys.path.append("Loggers")
+from poloniex_functions import BotFunctions
 from botlog import BotLog
 #import time
 
