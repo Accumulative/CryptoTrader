@@ -6,7 +6,7 @@ class BotTrade(object):
         self.output = BotLog()
         self.status = "OPEN"
         self.entryPrice = currentPrice
-        self.expiry = 0
+        self.expiry = expiry
         self.exitPrice = ""
         self.dateOpened = dateO
         self.age = 0

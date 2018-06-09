@@ -150,7 +150,7 @@ def main(argv):
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
 #        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
-        trialDetails= [['howSimReq', 0.3, 0.9, 0.2]]
+        trialDetails= [['advance', 13, 13, 4],['stoploss', 0.1, 0.1, 0.1]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         
@@ -159,7 +159,6 @@ def main(argv):
         total = 1
         for i in trialDetails:
             add = ((i[2] - i[1] ) / i[3])
-            print(isclose(add,round(add)), add, round(add))
             if isclose(add,round(add)): # fix this
                 total *= (add+1)
             else:

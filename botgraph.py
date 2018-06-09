@@ -32,6 +32,7 @@ class BotGraph(object):
 #                points['hightrend'] = currentHTrend
                 
             for trade in trades:
+                
                 if trade.dateOpened == points['date']:
                     points['buy'] = "'buy'"
                 elif trade.dateClosed == points['date']:
@@ -52,7 +53,7 @@ class BotGraph(object):
         self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addRows([""")    
    
         toWrite = ""
-        for point in datapoints[:500]:
+        for point in datapoints[-200:]:
             toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell'])#+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
             toWrite += ("],\n")
             

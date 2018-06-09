@@ -26,94 +26,64 @@ class maclearn(object):
                 self.patternAr = list(self.patternAr[1:])
             return self.patternRecognition(prices)
     
-    def percentChange(self,x,y):
-        if x != 0:
-            return ((y-x)/abs(x))*100.00
+    def similar(self, A, B, A_prev, B_prev):
+        A_p = np.divide(A, A_prev)
+        B_p = np.divide(B, B_prev)
+        AB_p_corr = np.corrcoef(A_p, B_p)
+        AB_diff = np.subtract(A_p, B_p)
+        if (AB_p_corr[1,0] > self.howSimReq and np.sum(np.abs(AB_diff)) < 0.1 and max(A_p)-min(B_p) > 0.005):
+            return [AB_p_corr[1,0], np.sum(np.abs(AB_diff)), max(A_p)-min(B_p)]
         else:
             return 0
     
-#    def getLinearity(self, X, Y):
-#        diff = np.subtract(X, Y)
-#        c = np.arange(1, len(diff)+1)
-#        sumX2 = np.sum(np.square(c))
-#        sumY2 = np.sum(np.square(diff))
-#        sumXY = np.sum(np.multiply(c,diff))
-#        sumX = np.sum(c)
-#        sumY = np.sum(diff)
-#        n = len(diff)
-#        r = (n * sumXY - sumX * sumY) / (math.sqrt(n * sumX2 - sumX * sumX) * math.sqrt(n * sumY2 - sumY * sumY))
-#        return r
-    def getLinearity(self, X, Y):
-        z, residuals, rank, singular_values, rcond = np.polyfit(X, Y, 1, full=True)
-        return residuals[0]
+    def runTest(self, tstep, prices_to_test):
+        res_tracker = 0 
+        currPattern = prices_to_test[-tstep:]
+        matches = 0
+        guess = 0
+        for i in range(tstep, len(prices_to_test)-tstep-self.inAdvance):
+            prevPattern = prices_to_test[i : i + tstep]
+            similarity = self.similar(prevPattern, currPattern, prices_to_test[i-1], prices_to_test[-tstep-1])
+            if( similarity != 0 ):
+                future_outcome = (np.average(prices_to_test[i+tstep:i+tstep+self.inAdvance]) - prices_to_test[i+tstep-1])/ prices_to_test[i+tstep-1]
+                res_tracker += (1 if future_outcome > 0 else -1)
+                guess += (np.average(prices_to_test[i+tstep:i+tstep+self.inAdvance]) - prices_to_test[i-1])/ prices_to_test[i-1]
+                matches += 1
+
+        return [res_tracker, matches, guess / matches if matches != 0 else 0]
         
     def patternStorage(self,prices):
-    
-        learntPattern = []
         
         if(len(prices) > self.lookback+self.inAdvance):
             
             self.learnProg += 1
             
-            for i in range(0,self.lookback):
-                learntPattern.append(self.percentChange(prices[-self.inAdvance], prices[-i-self.inAdvance]))
-    
-            outcomeRange = prices[-self.inAdvance+1:]
+            learntPattern = np.divide(prices[-self.inAdvance-self.lookback:-self.inAdvance], prices[-self.inAdvance -self.lookback - 1])  
 #            Should weight/change outcome range..
-            currentPoint = prices[-self.inAdvance]
-    
-            try:
-                avgOutcome = sum(outcomeRange) / len(outcomeRange)
-            except Exception as e:
-                print(e)
-                avgOutcome = 0
-            futureOutcome = self.percentChange(currentPoint, avgOutcome)
+            
+            futureOutcome = (np.average(prices[-self.inAdvance:]) - prices[-self.inAdvance-1])/ prices[-self.inAdvance-1]
     
             self.patternAr.append([learntPattern, futureOutcome])
     
     
-    def patternRecognition(self, prices):
-    
-        patForRec = np.zeros(self.lookback)
-        for i in range(0,self.lookback):
-            patForRec[i] = self.percentChange(prices[-i], prices[-1])
-               
+    def patternRecognition(self, prices):            
         
-            
-#        predictedOutcomesAr = []
-        plotPatAr = []
-        n = len(patForRec)
-        for eachPattern in self.patternAr:
-            simArray = []
-            for x in range(self.minPat, n + 1):
-                c = eachPattern[0][n-x:]
-                d = patForRec[n-x:]
-                lin = self.getLinearity(c,d)
-                simArray.append([x, lin, lin / math.sqrt(x)])
-            
-            simArray.sort(key=lambda xa: abs(xa[2]))
-                
-            if abs(simArray[-1][1]) > self.howSimReq:
-                plotPatAr.append([eachPattern[0][n-simArray[-1][0]:], eachPattern[1]])
-#        if(len(plotPatAr) != 0):
-#            print(plotPatAr, patForRec)
-    
-        predArray = []
-        if len(plotPatAr) > 0:
-            for eachPatt in range(0,len(plotPatAr)):
-    
-                if plotPatAr[eachPatt][1] > 0: #patForRec[self.lookback-1]: price[-1] / price[-2] < price
-                    predArray.append(1.000)
-                else:
-                    predArray.append(-1.000)
-#                predictedOutcomesAr.append(self.performanceAr[eachPatt][1])
-                
-                
-            predictionAverage = sum(predArray) / len(predArray)
-            
-            if predictionAverage > 0.5:
-                return "Buy"
-            elif predictionAverage < -0.5:
-                return "Sell"
+        res = self.runTest(self.lookback, prices)
+        
+        if (res[0] > 0):
+            return "Buy"
+        elif (res[0] < 0):
+            return "Sell"
+        
         return 'nothing'
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
             
