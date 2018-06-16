@@ -58,9 +58,7 @@ class BotStrategy(object):
         
         self.upfactor = 1.1 if not 'upfactor' in details else details['upfactor']
         self.downfactor = 1.3 if not 'downfactor' in details else details['downfactor']
-        
         self.trailingstop = 0.1 if not 'trailingstop' in details else details['trailingstop']
-                
         
         
     def tick(self,candlestick, training=False):
@@ -115,6 +113,7 @@ class BotStrategy(object):
             self.BuyUpShortCrash()
         if '4' in self.strat:
             self.LearnPatterns(training)
+            
         
         if changeCheck != self.trades:
             self.dirty = True

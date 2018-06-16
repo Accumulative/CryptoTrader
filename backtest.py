@@ -14,7 +14,7 @@ from createindex import CreateIndex
 import time
 import datetime
 import numpy as np
-from poloniex_functions import BotFunctions
+from connection import BotFunctions
 from datehelper import DateHelper
 with open('Currencies/Exchange1.txt','r') as file:
     currencies = file.read().split("\n")
@@ -156,7 +156,7 @@ def main(argv):
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
 #        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
-        trialDetails= [['advance', 13, 13, 4],['stoploss', 0.1, 0.1, 0.1]]
+        trialDetails= [['advance', 5, 25, 4],['stoploss', 0, 0.2, 0.1]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         
@@ -184,8 +184,13 @@ def main(argv):
     else:
         chart = BotChart(functions,pair)
         dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE", period)  
-        strategyDetails = {'howSimReq':0.9}
+        strategyDetails = {'howSimReq':0.9 }
         strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat)
+        param_to_store = strategyDetails
+        param_to_store['strategy'] = strat;
+        param_to_store['pair'] = pair;
+        param_to_store['period'] = period;
+        functions.mysql_conn.storeAllParameters(param_to_store);
         if(strat == "4"):
             print("Pretraining STARTED")
             if(endTime == ""):

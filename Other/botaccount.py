@@ -1,7 +1,6 @@
 import sys
 sys.path.append("Connections")
 sys.path.append("Loggers")
-from poloniex_functions import BotFunctions
 from botlog import BotLog
 #import time
 
@@ -9,7 +8,7 @@ class BotAccount(object):
     def __init__(self, functions):
         self.output = BotLog()
         self.output.log("Getting balance data...")
-        self.functions = functions
+        self.conn = functions.poloniex_conn
         self.data = self.__updateBalance()
 
     def getBalance(self):

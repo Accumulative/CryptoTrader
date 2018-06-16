@@ -2,7 +2,7 @@ from poloniex import Poloniex
 from botlog import BotLog
 import time
 
-class BotFunctions(object):
+class poloniex_functions(object):
     def __init__(self):
         self.output = BotLog()
         self.conn = Poloniex('secret','key')
