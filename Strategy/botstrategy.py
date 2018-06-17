@@ -7,10 +7,9 @@ from botindicators import BotIndicators
 from bottrade import BotTrade
 import datetime
 from botaccount import BotAccount
-from machinelearning import maclearn
 
 class BotStrategy(object):
-    def __init__(self, functions, balance, trial, details, strat):
+    def __init__(self, functions, balance, trial, details, strat, trained_model=""):
         self.output = BotLog()
         self.prices = []
         self.startPrice = 0
@@ -26,20 +25,13 @@ class BotStrategy(object):
         self.account.createBalancePage()
         self.startingPositions = self.account.getBalance()
         self.indicators = BotIndicators()
+        self.trained_model = trained_model
 
         self.dirty = False
         self.fee = 0.0025
-        self.mcl = 0
         self.strat = strat
         
         self.lookback = 7 if not 'lookback' in details else details['lookback']
-        self.learnProgTotal = 500 if not 'learnProgTotal' in details else details['learnProgTotal']
-        self.advance = 5 if not 'advance' in details else details['advance']
-        self.howSimReq = 0.95 if not 'howSimReq' in details else details['howSimReq']
-        self.learnLimit = 700 if not 'learnLimit' in details else details['learnLimit']
-        
-        if(self.strat == '4'):
-            self.mcl = maclearn(self.learnProgTotal, self.lookback, self.advance, self.howSimReq, self.learnLimit)
         
         self.trial = trial
         
@@ -51,6 +43,7 @@ class BotStrategy(object):
         self.mamultfactor = 1 if not 'maFactor' in details else details['maFactor']
         self.numSimulTrades = 1 if not 'simTrades' in details else details['simTrades']
         self.stoploss = 0 if not 'stoploss' in details else details['stoploss']
+        self.advance = 13 if not 'advance' in details else details['advance']
         
         self.lowrsi = 30 if not 'lowrsi' in details else details['lowrsi']
         self.highrsi = 70 if not 'highrsi' in details else details['highrsi']
@@ -59,10 +52,12 @@ class BotStrategy(object):
         self.upfactor = 1.1 if not 'upfactor' in details else details['upfactor']
         self.downfactor = 1.3 if not 'downfactor' in details else details['downfactor']
         self.trailingstop = 0.1 if not 'trailingstop' in details else details['trailingstop']
-        
+
+        self.stoploss_day_count = 0
+        self.stoploss_day_count_set = 0 if not 'stoplossDayCount' in details else details['stoplossDayCount']        
         
     def tick(self,candlestick, training=False):
-        if 'weightedAverage' in candlestick:
+        if not self.trial == 0:
             # HISTORIC VALUES
             self.currentPrice = float(candlestick['weightedAverage'])
         else:
@@ -82,6 +77,8 @@ class BotStrategy(object):
         
         self.indicators.doDataPoints(self.currentPrice, self.currentDate)
         
+        if(self.stoploss_day_count != 0):
+            self.stoploss_day_count -= 1
         #lastMax = 0 if len(self.indicators.localMax) == 0 else self.indicators.localMax[-1]
         #lastMin = 0 if len(self.indicators.localMin) == 0 else self.indicators.localMin[-1]
         
@@ -125,6 +122,7 @@ class BotStrategy(object):
             if (self.currentPrice < trade.stopLoss ):
                 self.trades[trade.id].close(self.currentDate, self.currentPrice, "Stoploss")
                 self.balance += trade.volume * self.currentPrice
+                self.stoploss_day_count = self.stoploss_day_count_set
                 
     def handleTrailingStop(self, trade):
         if (self.trailingstop != 0):
@@ -240,18 +238,18 @@ class BotStrategy(object):
 #    Strat 4
     def LearnPatterns(self, training):
         
-        toBuy = self.mcl.calc(self.prices)
+        toBuy = self.trained_model.calc(self.prices)
         if not training:
             for trade in self.openTrades:
-                if trade.expiry != 0:
-                    if trade.age >= trade.expiry:
-                        self.balance += trade.volume * self.currentPrice
-                        self.trades[trade.id].close(self.currentDate, self.currentPrice, "Expired")
-                    else:
-                        self.trades[trade.id].age += 1
-                        self.handleStopLosses(trade)
+                # if trade.expiry != 0:
+                    # if trade.age >= trade.expiry:
+                        # self.balance += trade.volume * self.currentPrice
+                        # self.trades[trade.id].close(self.currentDate, self.currentPrice, "Expired")
+                    # else:
+                self.trades[trade.id].age += 1
+                self.handleStopLosses(trade)
             
-            if toBuy == "Buy":
+            if toBuy == "Buy" and (self.stoploss_day_count == 0 or self.stoploss_day_count_set == 0):
                 amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
                 fee = amountToBuy * self.currentPrice * self.fee
                 if (self.balance >= fee + amountToBuy * self.currentPrice + 10) and (fee + amountToBuy * self.currentPrice + 10) > 100:
@@ -266,6 +264,8 @@ class BotStrategy(object):
                     self.balance += self.trades[-1].volume * self.currentPrice
                     #print(self.balance, self.trades[-1].volume, self.currentPrice, '', self.trades[-1].id)
                     self.trades[-1].close(self.currentDate, self.currentPrice, "Sell indicator")
+            # elif not (self.stoploss_day_count == 0 or self.stoploss_day_count_set != 0):
+            #     print("waiting for stoploss {}".format(self.currentDate))
                 
                 
             

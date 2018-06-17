@@ -2,6 +2,7 @@ from botlog import BotLog
 import os
 import json
 import time
+import pandas as pd
 
 class BotChart(object):
     def __init__(self, functions, pair):
@@ -14,11 +15,12 @@ class BotChart(object):
         self.startTime = startTime
         self.endTime = endTime
 
-        if not os.path.exists("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime)+"_"+str(self.period) + ".txt"):
+        if not os.path.exists("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime)+"_"+str(self.period) + ".pkl"):
             self.output.log("Getting chart data (API)...")
             while True:
                 try:
-                    self.data = self.conn.getHistoricTicks(self.pair, self.startTime, self.endTime, self.period) 
+                    self.data = pd.DataFrame(self.conn.getHistoricTicks(self.pair, self.startTime, self.endTime, self.period))
+                    self.data.to_pickle("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime)+"_"+str(self.period) + ".pkl")
                     break
                 except Exception as e:
                     self.output.log("Error: " + str(e))
@@ -26,18 +28,14 @@ class BotChart(object):
                     continue
         else:
             self.output.log("Getting chart data (Local)...")
-            self.data = self.__getDataFromFile("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime)+"_"+str(self.period) + ".txt")
+            self.data = self.__getDataFromFile("Data/"+self.pair+"_"+ str(startTime) + "_" + str(endTime)+"_"+str(self.period) + ".pkl")
 
     def getPoints(self):
         return self.data
     
     def __getDataFromFile(self,path):
-        dictionary = []
-        with open(path, "r") as text_file:
-            for line in text_file:
-                json_acceptable_string = line.replace("'", "\"")
-                dictionary.append(json.loads(json_acceptable_string))
-        return dictionary
+        
+        return pd.read_pickle(path)
         
     def getNext(self):
         self.output.log("Getting next tick...")

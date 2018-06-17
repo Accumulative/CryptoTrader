@@ -12,7 +12,7 @@ import pymysql
 
 class mysql_database(object):
     def __init__(self):
-        db_config = yaml.load(open('config-dev.yml'))['mysql']
+        db_config = yaml.load(open('config.yml'))['mysql']
         self.conn = pymysql.connect(host=db_config['host'], port=db_config['port'], user=db_config['username'], passwd=db_config['password'], db=db_config['database'])
 
     def getAllTrades(self):

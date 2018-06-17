@@ -11,6 +11,7 @@ from botlog import BotLog
 from botdatalog import BotDataLog
 from botgraph import BotGraph
 from createindex import CreateIndex
+from machinestrat import MachineStrat
 import time
 import datetime
 import numpy as np
@@ -41,16 +42,20 @@ environment = 'PI'
 total = 1
 trialResults = []
 chart = ""
-dataoutput = ""
 now = 0
+mcl = ""
+trained_mcl = ""
+chartData = []
+
 def trial(toPerform, curr):
-    global dataoutput
     global pair
-    dataoutput = BotDataLog(pair, startTime, endTime, period)
     
     global chart
     global prevPair
     global now
+    global mcl
+    global trained_mcl
+    global chartData
     now += 1
     
     num = "_".join(map(str, ("-".join(map(str, a)) for a in toPerform)))
@@ -61,15 +66,26 @@ def trial(toPerform, curr):
             pair = tradeCurrencies[z[1]-1]
         strategyDetails[z[0]] = z[1]
     print("{} | {}/{} | {}".format(str(num),now,total,  str(datetime.datetime.now())[:10]))
-#    print(pair, prevPair)
-#    time.sleep(int(3))
-    if pair != prevPair:
-        chart = BotChart(functions,pair)
-        chart.getHistorical(period,startTime,endTime)
-        prevPair = pair
-    strategy = BotStrategy(functions, totalBalance, num, strategyDetails, strat)
-    for candlestick in chart.getPoints(): 
-        dataoutput.logPoint(candlestick)
+    if strat in ["4"]:
+        if ('lookback-mc' in strategyDetails or 'advance' in strategyDetails or 'learnProgTotal' in strategyDetails) or mcl == "":
+            mcl = MachineStrat(strat, strategyDetails)
+        if not mcl.trained:
+            learnProgTotal = 500 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
+            chart = BotChart(functions,pair)
+            chart.getHistorical(period,startTime - period*learnProgTotal,endTime)
+            totalChartData = chart.getPoints()
+            trainingSet = totalChartData["weightedAverage"][:learnProgTotal]
+            chartData = totalChartData[learnProgTotal:]
+            trained_mcl = mcl.train(trainingSet)
+            
+    else: 
+        if pair != prevPair:
+            chart = BotChart(functions,pair)
+            chart.getHistorical(period,startTime,endTime)
+            chartData = chart.getPoints()
+            prevPair = pair
+    strategy = BotStrategy(functions, totalBalance, num, strategyDetails, strat, trained_mcl)
+    for index, candlestick in chart.getPoints().iterrows():
         strategy.tick(candlestick)
   
     strategy.closeAllTrades()
@@ -102,7 +118,6 @@ def main(argv):
     global liveTrading  
     global environment
     global chart
-    global dataoutput
     global strat
     
     output.log("------------STARTING BACKTESTER------------")
@@ -156,10 +171,9 @@ def main(argv):
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
 #        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
-        trialDetails= [['advance', 5, 25, 4],['stoploss', 0, 0.2, 0.1]]
+        trialDetails= [['stoplossDayCount', 0*86400/period, 30*86400/period, 5*86400/period],['stoploss', 0, 0.25, 0.05]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
-        
         
         global total
         total = 1
@@ -183,7 +197,6 @@ def main(argv):
         createIndex.CreatePages()
     else:
         chart = BotChart(functions,pair)
-        dataoutput = BotDataLog(pair, DateHelper.ut(datetime.datetime.now()), "LIVE", period)  
         strategyDetails = {'howSimReq':0.9 }
         strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat)
         param_to_store = strategyDetails
@@ -197,7 +210,7 @@ def main(argv):
                 endTime = DateHelper.ut(datetime.datetime.now())
             chart.getHistorical(period,startTime,endTime)
             num_x = 0
-            for candlestick in chart.getPoints(): 
+            for index, candlestick in chart.getPoints().iterrows(): 
                 num_x = num_x + 1
                 if(num_x % 10 == 0):
                     print(str(DateHelper.dt(int(candlestick['date']))))
@@ -208,7 +221,6 @@ def main(argv):
             currTick = dict(chart.getNext())
             currTick['date'] = str(DateHelper.ut(datetime.datetime.now()))
             strategy.tick(currTick)
-            dataoutput.logPoint(currTick)
             createIndex.CreatePages()
             print('{}: Sleeping ...'.format(currTick['date']))
             end = time.time()

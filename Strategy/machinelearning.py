@@ -4,7 +4,7 @@ import numpy as np
 import math
 
 class maclearn(object):
-    def __init__(self, learnProgTotal, lookback, advance, howSimReq, learnLimit):
+    def __init__(self, learnProgTotal, lookback, advance, howSimReq, learnLimit, training_set):
 
         self.lookback = lookback
         self.learnProg = 0
@@ -15,6 +15,9 @@ class maclearn(object):
         self.learnLimit = learnLimit
         self.howSimReq = howSimReq
         self.minPat = 6
+
+        for i in range(self.lookback+self.inAdvance, len(training_set)):
+            self.patternStorage(np.array(training_set)[:i])
     
     def calc(self,prices):
         
@@ -54,7 +57,7 @@ class maclearn(object):
         
     def patternStorage(self,prices):
         
-        if(len(prices) > self.lookback+self.inAdvance):
+        if(len(prices) > self.lookback+self.inAdvance+1):
             
             self.learnProg += 1
             
