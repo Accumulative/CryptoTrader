@@ -79,7 +79,7 @@ class BotLog(object):
         if c:
             self.consoleLog(m)
         
-    def logTrades(self, trades, bal, trial):
+    def logTrades(self, trades, bal, trial, endBal):
         self.createFolders()
         self.consoleLog("Logging trades")
         with open(self.destinationTrades + "/" + str(trial) + ".html", "w") as text_file:
@@ -141,7 +141,7 @@ class BotLog(object):
             </tfoot>
             <tbody>
             <tr>""", file=text_file)
-            sumProfit = 0
+            sumProfit = endBal
             trades.sort(key=lambda t: t.dateOpened)
             for trade in trades:
                 currProfit = 0 if trade.exitPrice == "" else float(trade.exitPrice - trade.entryPrice)*trade.volume - trade.fee

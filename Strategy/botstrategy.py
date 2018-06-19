@@ -48,6 +48,7 @@ class BotStrategy(object):
         self.lowrsi = 30 if not 'lowrsi' in details else details['lowrsi']
         self.highrsi = 70 if not 'highrsi' in details else details['highrsi']
         self.rsiperiod = 14 if not 'rsiperiod' in details else details['rsiperiod']
+        self.learnProgTotal = 1400 if not 'learnProgTotal' in details else details['learnProgTotal']
         
         self.upfactor = 1.1 if not 'upfactor' in details else details['upfactor']
         self.downfactor = 1.3 if not 'downfactor' in details else details['downfactor']
@@ -68,7 +69,7 @@ class BotStrategy(object):
         if self.startPrice == 0:
             self.startPrice = self.currentPrice
         
-        self.prices = self.prices[-100:]
+        self.prices = self.prices[-self.learnProgTotal-10:]
         
         #self.currentClose = float(candlestick['close'])
         #self.closes.append(self.currentClose)
@@ -139,7 +140,7 @@ class BotStrategy(object):
                 trade.tick(self.currentPrice)
     
     def showAllTrades(self):
-        self.output.logTrades(self.trades, self.origBalance, self.trial)
+        self.output.logTrades(self.trades, self.origBalance, self.trial, self.balance)
         self.indicators.graphIndicators(self.trades)
     
     
@@ -152,7 +153,7 @@ class BotStrategy(object):
         
    
     def calculateTotalProft(self):
-       totalProfit = 0
+       totalProfit = self.balance
        totalFees = 0
        for trade in self.trades:
            totalProfit += (trade.exitPrice - trade.entryPrice) * trade.volume - trade.fee
@@ -161,7 +162,7 @@ class BotStrategy(object):
        self.output.log("Total profit is:"+ str(totalProfit))
        self.output.log("Total balance is:"+ str(self.balance))
        self.output.log("Total fees are:"+ str(totalFees))
-       marketProf = (self.prices[-1] - self.startPrice)/self.startPrice
+       marketProf = (self.currentPrice - self.startPrice)/self.startPrice
        self.output.log("Market profit is " + str(marketProf))
        return totalProfit, marketProf
    

@@ -70,7 +70,7 @@ def trial(toPerform, curr):
         if ('lookback-mc' in strategyDetails or 'advance' in strategyDetails or 'learnProgTotal' in strategyDetails) or mcl == "":
             mcl = MachineStrat(strat, strategyDetails)
         if not mcl.trained:
-            learnProgTotal = 500 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
+            learnProgTotal = 1400 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
             chart = BotChart(functions,pair)
             chart.getHistorical(period,startTime - period*learnProgTotal,endTime)
             totalChartData = chart.getPoints()
@@ -85,7 +85,7 @@ def trial(toPerform, curr):
             chartData = chart.getPoints()
             prevPair = pair
     strategy = BotStrategy(functions, totalBalance, num, strategyDetails, strat, trained_mcl)
-    for index, candlestick in chart.getPoints().iterrows():
+    for index, candlestick in chartData.iterrows():
         strategy.tick(candlestick)
   
     strategy.closeAllTrades()
@@ -119,7 +119,7 @@ def main(argv):
     global environment
     global chart
     global strat
-    
+    global trained_mcl
     output.log("------------STARTING BACKTESTER------------")
     
 #    Handle all the incoming arguments
@@ -171,7 +171,8 @@ def main(argv):
 #             [factor, lower limit, higher limit, step] is the format
 #==============================================================================
 #        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
-        trialDetails= [['stoplossDayCount', 0*86400/period, 30*86400/period, 5*86400/period],['stoploss', 0, 0.25, 0.05]]
+        # trialDetails= [['stoplossDayCount', 0*86400/period, 30*86400/period, 5*86400/period],['stoploss', 0, 0.25, 0.05]]
+        trialDetails= [['howSimReq', 0.6,1,0.01],['lookback-mc', 6,15,1]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         
@@ -197,8 +198,8 @@ def main(argv):
         createIndex.CreatePages()
     else:
         chart = BotChart(functions,pair)
-        strategyDetails = {'howSimReq':0.9 }
-        strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat)
+        strategyDetails = {'howSimReq':0.9, "learnProgTotal": 1400 }
+        
         param_to_store = strategyDetails
         param_to_store['strategy'] = strat;
         param_to_store['pair'] = pair;
@@ -206,16 +207,19 @@ def main(argv):
         functions.mysql_conn.storeAllParameters(param_to_store);
         if(strat == "4"):
             print("Pretraining STARTED")
+            learnProgTotal = 500 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
             if(endTime == ""):
                 endTime = DateHelper.ut(datetime.datetime.now())
+            if(startTime == ""):
+                startTime = endTime - period * learnProgTotal
+            print("training fromm {} to {}".format(DateHelper.dt(startTime), DateHelper.dt(endTime)))
             chart.getHistorical(period,startTime,endTime)
-            num_x = 0
-            for index, candlestick in chart.getPoints().iterrows(): 
-                num_x = num_x + 1
-                if(num_x % 10 == 0):
-                    print(str(DateHelper.dt(int(candlestick['date']))))
-                strategy.tick(candlestick, True)
+            trainingSet = chart.getPoints()["weightedAverage"]
+            mcl = MachineStrat(strat, strategyDetails)
+            trained_mcl = mcl.train(trainingSet)
+
             print("Pretraining finished")
+        strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat, trained_mcl)
         while True:
             start = time.time()
             currTick = dict(chart.getNext())

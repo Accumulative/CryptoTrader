@@ -1,3 +1,3 @@
 source dev/bin/activate
-python backtest.py -p 14400 -c USDT_ETH -s 01/01/2017 -u 4 -b 100000 -v mac -l 1
+python -m cProfile -o temp.dat backtest.py -p 7200 -c USDT_BTC -u 4 -b 1000 -v mac -l 1
 deactivate
