@@ -25,7 +25,7 @@ class BotTrade(object):
         self.maxSeen = currentPrice
         
         if log == 0:
-            self.functions.ifttt_conn.log(tradeId, currentPrice, volume)
+            self.functions.ifttt_conn.log("Bought", currentPrice, volume)
             self.externalId = self.functions.mysql_conn.createTrade(self)
         
     def close(self, dateC, currentPrice, reason):
@@ -34,7 +34,7 @@ class BotTrade(object):
         self.dateClosed = dateC
         self.reason = reason
         if self.log == 0:
-            self.functions.ifttt_conn.log(self.id, currentPrice, self.volume)
+            self.functions.ifttt_conn.log("Closed", currentPrice, self.volume)
             self.functions.mysql_conn.closeTrade(self)
 #        self.output.log("Trade closed ({0}): {1} at {2}".format(self.id,self.volume, self.exitPrice))
 

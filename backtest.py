@@ -72,7 +72,7 @@ def trial(toPerform, curr):
         if not mcl.trained:
             learnProgTotal = 1400 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
             chart = BotChart(functions,pair)
-            chart.getHistorical(period,startTime - period*learnProgTotal,endTime)
+            chart.getHistorical(period,startTime - period * (learnProgTotal + 30),endTime)
             totalChartData = chart.getPoints()
             trainingSet = totalChartData["weightedAverage"][:learnProgTotal]
             chartData = totalChartData[learnProgTotal:]
@@ -84,7 +84,7 @@ def trial(toPerform, curr):
             chart.getHistorical(period,startTime,endTime)
             chartData = chart.getPoints()
             prevPair = pair
-    strategy = BotStrategy(functions, totalBalance, num, strategyDetails, strat, trained_mcl)
+    strategy = BotStrategy(period, functions, totalBalance, num, strategyDetails, strat, trained_mcl)
     for index, candlestick in chartData.iterrows():
         strategy.tick(candlestick)
   
@@ -198,7 +198,7 @@ def main(argv):
         createIndex.CreatePages()
     else:
         chart = BotChart(functions,pair)
-        strategyDetails = {'howSimReq':0.9, "learnProgTotal": 1400 }
+        strategyDetails = {'howSimReq':0.9, "lookback-mc": 7 }
         
         param_to_store = strategyDetails
         param_to_store['strategy'] = strat;
@@ -211,15 +211,23 @@ def main(argv):
             if(endTime == ""):
                 endTime = DateHelper.ut(datetime.datetime.now())
             if(startTime == ""):
-                startTime = endTime - period * learnProgTotal
-            print("training fromm {} to {}".format(DateHelper.dt(startTime), DateHelper.dt(endTime)))
+                startTime = endTime - period * (learnProgTotal + 100)
+            print("training from ~{} to {}".format(DateHelper.dt(startTime), DateHelper.dt(endTime)))
             chart.getHistorical(period,startTime,endTime)
-            trainingSet = chart.getPoints()["weightedAverage"]
+            trainingSet = chart.getPoints()
             mcl = MachineStrat(strat, strategyDetails)
-            trained_mcl = mcl.train(trainingSet)
+            trained_mcl = mcl.train(trainingSet["weightedAverage"][:learnProgTotal+30])
+            lookback = 7 if not 'lookback-mc' in strategyDetails else strategyDetails['lookback-mc']
+            
 
             print("Pretraining finished")
-        strategy = BotStrategy(functions,totalBalance,0, strategyDetails, strat, trained_mcl)
+            
+        strategy = BotStrategy(period, functions,totalBalance,0, strategyDetails, strat, trained_mcl)
+        
+        if strat == "4":
+            for index, candlestick  in trainingSet[-lookback-2:].iterrows():
+                strategy.tick(candlestick, True)
+
         while True:
             start = time.time()
             currTick = dict(chart.getNext())

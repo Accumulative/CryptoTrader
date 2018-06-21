@@ -9,9 +9,10 @@ import datetime
 from botaccount import BotAccount
 
 class BotStrategy(object):
-    def __init__(self, functions, balance, trial, details, strat, trained_model=""):
+    def __init__(self, period, functions, balance, trial, details, strat, trained_model=""):
         self.output = BotLog()
         self.prices = []
+        self.period = period
         self.startPrice = 0
         self.closes = [] # Needed for Momentum Indicator
         self.trades = []
@@ -58,7 +59,7 @@ class BotStrategy(object):
         self.stoploss_day_count_set = 0 if not 'stoplossDayCount' in details else details['stoplossDayCount']        
         
     def tick(self,candlestick, training=False):
-        if not self.trial == 0:
+        if not self.trial == 0 or training:
             # HISTORIC VALUES
             self.currentPrice = float(candlestick['weightedAverage'])
         else:
@@ -73,6 +74,7 @@ class BotStrategy(object):
         
         #self.currentClose = float(candlestick['close'])
         #self.closes.append(self.currentClose)
+        self.currentDateOrig = int(candlestick['date'])
         self.currentDate = datetime.datetime.fromtimestamp(int(candlestick['date'])).strftime('%Y-%m-%d %H:%M:%S')
         
         
@@ -239,8 +241,10 @@ class BotStrategy(object):
 #    Strat 4
     def LearnPatterns(self, training):
         
-        toBuy = self.trained_model.calc(self.prices)
+        toBuy, predictions = self.trained_model.calc(self.prices)
+        print(training, toBuy);
         if not training:
+            self.functions.mysql_conn.storePredictions(self.currentDateOrig, self.period, predictions)
             for trade in self.openTrades:
                 # if trade.expiry != 0:
                     # if trade.age >= trade.expiry:

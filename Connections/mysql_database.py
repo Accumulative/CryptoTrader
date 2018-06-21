@@ -9,11 +9,25 @@ import sys
 sys.path.append("Loggers")
 import yaml
 import pymysql
+import datetime
 
 class mysql_database(object):
     def __init__(self):
         db_config = yaml.load(open('config.yml'))['mysql']
         self.conn = pymysql.connect(host=db_config['host'], port=db_config['port'], user=db_config['username'], passwd=db_config['password'], db=db_config['database'])
+
+    def round_to_hour(self, dt):
+        dt_start_of_hour = dt.replace(minute=0, second=0, microsecond=0)
+        dt_half_hour = dt.replace(minute=30, second=0, microsecond=0)
+
+        if dt >= dt_half_hour:
+            # round up
+            dt = dt_start_of_hour + datetime.timedelta(hours=1)
+        else:
+            # round down
+            dt = dt_start_of_hour
+
+        return dt
 
     def getAllTrades(self):
         cur = self.conn.cursor()
@@ -68,14 +82,43 @@ class mysql_database(object):
             for key, val in params.items():
                 sql = """INSERT INTO parameters (name,value,active) 
                         VALUES ('{0}', '{1}', 1) 
-                            ON DUPLICATE KEY UPDATE value='{1}';          
+                            ON DUPLICATE KEY UPDATE prev_val=value, value='{1}';          
                     """.format(key, val);
-                print(sql)
         
                 cur.execute(sql)  
         finally:
             self.conn.commit()
             cur.close()
+
+    def storePredictions(self, date, period, predictions):
+        if len(predictions) > 0:
+            cur = self.conn.cursor()
+            try:
+                for i in range(len(predictions[0])):
+                    sql = """INSERT INTO predictions (value,type,pred_date) 
+                            VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
+                            ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
+                        """.format(predictions[0][i], 0, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-1) * period))); # 0 is average
+            
+                    cur.execute(sql)  
+                for i in range(len(predictions[1])):
+                    sql = """INSERT INTO predictions (value,type,pred_date) 
+                            VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
+                            ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
+                        """.format(predictions[1][i], 1, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-1) * period))); # 1 is min
+            
+                    cur.execute(sql)  
+                for i in range(len(predictions[2])):
+                    sql = """INSERT INTO predictions (value,type,pred_date) 
+                            VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
+                            ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
+                        """.format(predictions[2][i], 2, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-1) * period))); # 2 is max
+            
+                    cur.execute(sql)  
+            finally:
+                self.conn.commit()
+                cur.close()
+
 
     def closeConnection(self):
         self.conn.close()

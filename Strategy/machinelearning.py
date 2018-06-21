@@ -13,7 +13,8 @@ class maclearn(object):
         self.inAdvance = advance
         self.patternAr = []
         self.resultAr = []
-        
+        self.predAr = []
+
         self.performanceAr = []
         self.learnLimit = learnLimit
         self.howSimReq = howSimReq
@@ -27,12 +28,14 @@ class maclearn(object):
         self.patternStorage(prices)
         if(self.learnProg < self.learnProgTotal):
             
-            return "Training"
+            return [self.learnProg, self.learnProgTotal], []
         else:
             if len(self.patternAr) > self.learnLimit:
                 self.patternAr = list(self.patternAr[1:])
                 self.resultAr = list(self.resultAr[1:])
-            return self.patternRecognition(prices)
+                self.predAr = list(self.predAr[1:])
+            res, predictions = self.patternRecognition(prices)
+            return res, predictions
     
     def similar(self, A, B, A_prev, B_prev):
         A_p = np.divide(A, A_prev)
@@ -76,34 +79,21 @@ class maclearn(object):
     
     def runTest(self, tstep, prices):
         res_tracker = 0 
-        # prices_to_test = np.concatenate((np.array(self.training_set),np.array(prices))) 
         currPattern = np.divide(prices[-tstep:], prices[-tstep-1])
-        matches = 0
-        guess = 0
-        # print(prices_to_test)
-        # print(np.array([currPattern]), np.array(self.patternAr)[:20])#, np.array(self.patternAr)[:, 0])
-
-        # print(currPattern)
+        guess = np.zeros(self.inAdvance)
+        minGuess = np.empty(self.inAdvance)
+        minGuess.fill(100000)
+        maxGuess = np.zeros(self.inAdvance)
         covAr = self.generate_correlation_map(np.array([currPattern]), np.array(self.patternAr))
         mask = np.array((covAr > self.howSimReq)[0])
-        for result in np.array(self.resultAr)[mask]:
+        for result, pred in list(zip(np.array(self.resultAr)[mask], np.array(self.predAr)[mask])):
             res_tracker += (1 if result > 0 else -1)
-            guess += result
-            matches += 1
-
-        return [res_tracker, matches, guess / matches if matches != 0 else 0]
-
-
-        # for i in range(tstep, len(prices_to_test)-tstep-self.inAdvance):
-        #     prevPattern = prices_to_test[i : i + tstep]
-        #     similarity = self.similar(prevPattern, currPattern, prices_to_test[i-1], prices_to_test[-tstep-1])
-        #     if( similarity != 0 ):
-        #         future_outcome = (np.average(prices_to_test[i+tstep:i+tstep+self.inAdvance]) - prices_to_test[i+tstep-1])/ prices_to_test[i+tstep-1]
-        #         res_tracker += (1 if future_outcome > 0 else -1)
-        #         guess += (np.average(prices_to_test[i+tstep:i+tstep+self.inAdvance]) - prices_to_test[i-1])/ prices_to_test[i-1]
-        #         matches += 1
-
-        # return [res_tracker, matches, guess / matches if matches != 0 else 0]
+            guess = np.add(guess, pred);
+            minGuess = np.amin([minGuess, pred], axis=0)
+            maxGuess = np.amax([maxGuess, pred], axis=0)
+        matches = len(np.array(self.resultAr)[mask])
+        guess = np.divide(guess, matches)
+        return res_tracker, [guess, minGuess, maxGuess]
         
     def patternStorage(self,prices):
         
@@ -112,26 +102,29 @@ class maclearn(object):
             self.learnProg += 1
             
             learntPattern = np.divide(prices[-self.inAdvance-self.lookback:-self.inAdvance], prices[-self.inAdvance -self.lookback - 1])  
-#            Should weight/change outcome range..
-            
+
             futureOutcome = (np.average(prices[-self.inAdvance:]) - prices[-self.inAdvance-1])/ prices[-self.inAdvance-1]
     
+            predictions = np.divide(np.subtract(prices[-self.inAdvance:], prices[-self.inAdvance-1]), prices[-self.inAdvance-1])
+
             self.patternAr.append(learntPattern)
             self.resultAr.append(futureOutcome)
+            self.predAr.append(predictions)
     
     
     def patternRecognition(self, prices):            
         
         if(len(prices) > self.lookback+1):
-            res = self.runTest(self.lookback, prices)
-            
-            if (res[0] > 0):
-                return "Buy"
-            elif (res[0] < 0):
-                return "Sell"
+            res, predictions = self.runTest(self.lookback, prices)
+            predictions = np.multiply(np.add(predictions,1), prices[-1]);
+            if res != 0:
+                if (res > 0):
+                    return "Buy", predictions
+                elif (res < 0):
+                    return "Sell", predictions
         
-        return 'nothing'
-        
+            return 'nothing', predictions
+        return 'nothing', []
         
         
         
