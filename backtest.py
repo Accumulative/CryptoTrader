@@ -89,10 +89,11 @@ def trial(toPerform, curr):
         strategy.tick(candlestick)
   
     strategy.closeAllTrades()
-    totalProfit, marketProfit = strategy.calculateTotalProft()
+    totalAssets, totalFees, totalTime, marketProf = strategy.calculateCurrentPosition()
+    totalProfit = strategy.balance;
     global trialResults
-#    print([num, toPerform, totalProfit])
-    trialResults.append([num, toPerform.copy(), totalProfit, (marketProfit)*totalBalance])
+    timeEf = totalTime/(int(strategy.currentDateOrig) - int(strategy.startDate));
+    trialResults.append([num, toPerform.copy(), totalProfit, (marketProf)*totalBalance, totalTime, timeEf])
     
 def performTrial(y, n, curr):
     

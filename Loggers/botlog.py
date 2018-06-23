@@ -79,7 +79,7 @@ class BotLog(object):
         if c:
             self.consoleLog(m)
         
-    def logTrades(self, trades, bal, trial, endBal):
+    def logTrades(self, trades, bal, trial):
         self.createFolders()
         self.consoleLog("Logging trades")
         with open(self.destinationTrades + "/" + str(trial) + ".html", "w") as text_file:
@@ -141,13 +141,13 @@ class BotLog(object):
             </tfoot>
             <tbody>
             <tr>""", file=text_file)
-            sumProfit = endBal
+            sumProfit = bal
             trades.sort(key=lambda t: t.dateOpened)
             for trade in trades:
-                currProfit = 0 if trade.exitPrice == "" else float(trade.exitPrice - trade.entryPrice)*trade.volume - trade.fee
-                sumProfit += currProfit
-                print("<tr><td>{8}</td><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{9}</td><td>{6:0.7f}</td><td>{11}</td><td>{7:0.4f}%</td><td>{10}</td></tr>".format(trade.dateOpened, trade.dateClosed, trade.status, trade.volume, trade.entryPrice, trade.exitPrice, currProfit, 0 if (trade.exitPrice == "" or currProfit == 0) else (100 *(currProfit)/(trade.entryPrice * trade.volume)), trade.id, trade.fee, trade.reason, sumProfit), file=text_file)
-            print("<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>{0:0.7f}</td><td></td><td>{1:0.4f}%</td><td></td></tr>".format(sumProfit, sumProfit/bal), file=text_file)
+                currProfit = 0 if trade.exitPrice == "" else float(trade.exitPrice - trade.entryPrice)*trade.volume
+                sumProfit += currProfit - trade.fee
+                print("<tr><td>{8}</td><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{9}</td><td>{6:0.7f}</td><td>{11}</td><td>{7:0.4f}%</td><td>{10}</td></tr>".format(DateHelper.dt(trade.dateOpened), DateHelper.dt(trade.dateClosed), trade.status, trade.volume, trade.entryPrice, trade.exitPrice, currProfit, 0 if (trade.exitPrice == "" or currProfit == 0) else (100 *(currProfit)/(trade.entryPrice * trade.volume)), trade.id, trade.fee, trade.reason, sumProfit), file=text_file)
+            print("<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>{0:0.7f}</td><td></td><td>{1:0.4f}%</td><td></td></tr>".format(sumProfit, 100*(sumProfit/bal-1)), file=text_file)
             print("""</tbody>
             </table>
             <br/>
@@ -192,6 +192,8 @@ class BotLog(object):
             "".join("<th>{0}</th>".format(b[0]) for b in trialDetails) + \
                     """<th>Profit</th>
                         <th>Market</th>
+                        <th>Time in market</th>
+                        <th>Time %</th>
                     
                 </tr>
             </thead>
@@ -201,6 +203,8 @@ class BotLog(object):
             "".join("<th>{0}</th>".format(b[0]) for b in trialDetails) + \
                     """<th>Profit</th>
                         <th>Market</th>
+                        <th>Time in market</th>
+                        <th>100%</th>
                 </tr>
             </tfoot>
             <tbody>
@@ -214,6 +218,8 @@ class BotLog(object):
                 "".join("<td>{}</td>".format(c[1]) for c in res[:][1]) + \
                 "<td>{}</td>".format(res[2]) + \
                 "<td>{}</td>".format(res[3]) + \
+                "<td>{}</td>".format(res[4]) + \
+                "<td>{:0.4f}%</td>".format(res[5]) + \
                 "</tr>"
                 
                 print(stringToWrite, file=text_file)

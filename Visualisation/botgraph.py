@@ -15,7 +15,7 @@ class BotGraph(object):
         self.outputfile = open("output2.html",'w')
         
 
-    def outputGraph(self, datapoints, trades):
+    def outputGraph(self, datapoints, trades, benchmark):
         
 
 #        currentHTrend = 0.018
@@ -34,9 +34,14 @@ class BotGraph(object):
             for trade in trades:
                 
                 if trade.dateOpened == points['date']:
-                    points['buy'] = "'buy'"
+                    points['buy'] = points['price']
                 elif trade.dateClosed == points['date']:
-                    points['sell'] = "'sell'"
+                    points['sell'] = points['price']
+
+            for ben in benchmark:
+                if ben[0] == points['date']:
+                    points['myprof'] = str(ben[1])
+                    points['bench'] = str(ben[2])
         
         self.output.log("Creating graph...")
         self.outputfile.truncate()
@@ -50,15 +55,56 @@ class BotGraph(object):
 #        toWrite = toWrite[:-2]
 #        self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
 #    
-        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn({type: 'string', role:'annotation'});data.addColumn({type: 'string', role:'annotation'});data.addRows([""")    
+        self.outputfile.write("""<html><head><script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script type="text/javascript">google.charts.load('current', {'packages':['corechart']});google.charts.setOnLoadCallback(drawChart);function drawChart() {var data = new google.visualization.DataTable();data.addColumn('string', 'time');data.addColumn('number', 'value');data.addColumn('number', 'buys');data.addColumn('number', 'sells');data.addColumn('number', 'myprof');data.addColumn('number', 'bench');data.addRows([""")    
    
         toWrite = ""
-        for point in datapoints[-200:]:
-            toWrite += ("['"+point['date']+"',"+point['price']+","+point['buy']+","+point['sell'])#+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
+        for point in datapoints:
+            toWrite += ("['"+str(DateHelper.dt(point['date']))+"',"+point['price']+","+point['buy']+","+point['sell']+","+point['myprof']+","+point['bench'])#+point['label']+","+point['desc']+","+str(point['lowtrend'])+","+str(point['hightrend']))
             toWrite += ("],\n")
             
         toWrite = toWrite[:-2]
-        self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
+        self.outputfile.write(toWrite+"""]);var options = {title: 'Price Chart',legend: { position: 'bottom' }, interpolateNulls: true,
+        series: { 
+        0: {
+            targetAxisIndex: 0,
+            lineWidth: 1
+        },
+        1: {
+            targetAxisIndex: 0,
+            color: '#f1ca3a',
+            lineWidth: 0,
+            pointSize: 5,
+            visibleInLegend: false
+        },
+        2: {
+            targetAxisIndex: 0,
+            color: '#43459d',
+            lineWidth: 0,
+            pointSize: 5,
+            visibleInLegend: false
+        },
+        3: {
+            targetAxisIndex: 0,
+            color: '#e7711b',
+            visibleInLegend: true,
+            lineWidth: 1,
+            interpolateNulls: true,
+            type: "line"
+        },
+        4: {
+            targetAxisIndex: 0,
+            color: '#000000',
+            visibleInLegend: true,
+            lineWidth: 1,
+            interpolateNulls: true,
+            type: "line"
+        }
+      },axes: {
+          y: {
+            0: {title: 'Prices'},
+            1: {title: 'Balance'}
+          }
+        }};var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));chart.draw(data, options);}</script></head><body><div id="curve_chart" style="width: 100%; height: 100%"></div></body></html>""")
     
        
     

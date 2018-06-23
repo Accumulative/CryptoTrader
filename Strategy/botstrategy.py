@@ -38,7 +38,7 @@ class BotStrategy(object):
         self.trial = trial
         
         self.openTrades = []
-        
+        self.balanceRecord = []
         
         self.highMA = 47 if not 'highMA' in details else details['highMA']
         self.lowMA = 28 if not 'lowMA' in details else details['lowMA']
@@ -80,7 +80,7 @@ class BotStrategy(object):
             self.startPrice = self.currentPrice
             self.startDate = self.currentDateOrig
         
-        self.indicators.doDataPoints(self.currentPrice, self.currentDate)
+        #self.indicators.doDataPoints(self.currentPrice, self.currentDateOrig, self.strat)
         
         if(self.stoploss_day_count != 0):
             self.stoploss_day_count -= 1
@@ -99,7 +99,7 @@ class BotStrategy(object):
             if self.dirty and self.trial == 0:
                 # self.showAllTrades()
                 self.dirty = False
-                totalAssets, totalFees, totalTime = self.calculateCurrentPosition()
+                totalAssets, totalFees, totalTime, _ = self.calculateCurrentPosition()
                 stats = { "balance" : self.balance, 
                           "assets"  : totalAssets,
                           "fees"    : totalFees,
@@ -112,10 +112,7 @@ class BotStrategy(object):
         changeCheckTrades = self.trades.copy()
         changeCheckBal = self.balance
 
-        self.openTrades = []
-        for trade in self.trades:
-            if (trade.status == "OPEN"):
-                self.openTrades.append(trade)
+        self.getOpenTrades();
         
         if '1' in self.strat:
             self.MACrossover()
@@ -129,12 +126,19 @@ class BotStrategy(object):
         
         if changeCheckTrades != self.trades or self.balance != changeCheckBal:
             self.dirty = True
-                
+            assets, _, _, marketProf = self.calculateCurrentPosition()
+            self.balanceRecord.append([self.currentDateOrig, self.balance+assets,self.origBalance* marketProf])
+            # print(self.balance)
+
+    def getOpenTrades(self):
+        self.openTrades = []
+        for trade in self.trades:
+            if (trade.status == "OPEN"):
+                self.openTrades.append(trade)
                 
     def handleStopLosses(self, trade):
         if (self.stoploss != 0):
-#                print("2", trade.id , self.currentPrice, trade.stopLoss)
-            if (self.currentPrice < trade.stopLoss ):
+            if ((self.currentPrice < trade.stopLoss and trade.volume < 0) or (self.currentPrice > trade.stoploss and trade.volume >= 0)):
                 self.trades[trade.id].close(self.currentDateOrig, self.currentPrice, "Stoploss")
                 self.balance += trade.volume * self.currentPrice
                 self.stoploss_day_count = self.stoploss_day_count_set
@@ -154,15 +158,17 @@ class BotStrategy(object):
                 trade.tick(self.currentPrice)
     
     def showAllTrades(self):
-        self.output.logTrades(self.trades, self.origBalance, self.trial, self.balance)
-        self.indicators.graphIndicators(self.trades)
+        self.output.logTrades(self.trades, self.origBalance, self.trial)
+        #self.indicators.graphIndicators(self.trades, self.balanceRecord)
     
     
     def closeAllTrades(self):
         for trade in self.trades:
             if (trade.status == "OPEN"):
-                trade.close(self.currentDate, self.currentPrice, "Last trade")
-                self.balance += trade.volume * self.currentPrice
+                if(trade.volume >= 0):
+                    self.closeLong(trade.id);
+                else:
+                    self.closeShort(trade.id);
         self.showAllTrades()
         
     def calculateCurrentPosition(self):
@@ -170,24 +176,12 @@ class BotStrategy(object):
         totalFees = 0
         totalTime = 0
         for trade in self.trades:
-           totalAssets += self.currentPrice * trade.volume
-           totalFees += trade.fee
-           totalTime += (int(self.currentDateOrig) - int(trade.dateOpened) if trade.dateClosed == "" else int(trade.dateClosed) - int(trade.dateOpened))
-        return totalAssets, totalFees, totalTime
-
-    def calculateTotalProft(self):
-       totalProfit = self.balance
-       totalFees = 0
-       for trade in self.trades:
-           totalProfit += (trade.exitPrice - trade.entryPrice) * trade.volume - trade.fee
-           totalFees += trade.fee
-           
-       self.output.log("Total profit is:"+ str(totalProfit))
-       self.output.log("Total balance is:"+ str(self.balance))
-       self.output.log("Total fees are:"+ str(totalFees))
-       marketProf = (self.currentPrice - self.startPrice)/self.startPrice
-       self.output.log("Market profit is " + str(marketProf))
-       return totalProfit, marketProf
+            if trade.status == "OPEN":
+                totalAssets += self.currentPrice * trade.volume
+            totalFees += trade.fee
+            totalTime += (int(self.currentDateOrig) - int(trade.dateOpened) if trade.dateClosed == "" else int(trade.dateClosed) - int(trade.dateOpened))
+        marketProf = (self.currentPrice - self.startPrice)/self.startPrice
+        return totalAssets, totalFees, totalTime, marketProf
    
 #==============================================================================
 # Strategies
@@ -264,6 +258,7 @@ class BotStrategy(object):
         
         toBuy, predictions = self.trained_model.calc(self.prices)
         if not training:
+            
             for trade in self.openTrades:
                 # if trade.expiry != 0:
                     # if trade.age >= trade.expiry:
@@ -272,28 +267,52 @@ class BotStrategy(object):
                     # else:
                 self.trades[trade.id].age += 1
                 self.handleStopLosses(trade)
-            
-            if toBuy == "Buy" and (self.stoploss_day_count == 0 or self.stoploss_day_count_set == 0):
-                amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
-                fee = amountToBuy * self.currentPrice * self.fee
-                if (self.balance >= fee + amountToBuy * self.currentPrice + 10) and (fee + amountToBuy * self.currentPrice + 10) > 100:
-                    stoplossn = self.currentPrice * (1-self.stoploss)
+
+            self.getOpenTrades();
+
+            if (self.stoploss_day_count == 0 or self.stoploss_day_count_set == 0):
+                if toBuy == "Buy":
+                    if len(self.openTrades) > 0:
+                        if self.trades[-1].volume < 0:
+                            self.closeShort(-1);
+                    else:
+                        amountToBuy = (self.balance-10) / (self.currentPrice * (1+self.fee))
+                        self.openLong(amountToBuy);
                         
-                    self.balance -= (amountToBuy * self.currentPrice + fee)
-                    self.trades.append((BotTrade(self.functions, self.currentDateOrig, amountToBuy, self.currentPrice,len(self.trades),stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
-                    
-                    
-            elif toBuy == "Sell"and len(self.trades) > 0:
-                if self.trades[-1].status != "CLOSED":
-                    self.balance += self.trades[-1].volume * self.currentPrice
-                    #print(self.balance, self.trades[-1].volume, self.currentPrice, '', self.trades[-1].id)
-                    self.trades[-1].close(self.currentDateOrig, self.currentPrice, "Sell indicator")
-            # elif not (self.stoploss_day_count == 0 or self.stoploss_day_count_set != 0):
-            #     print("waiting for stoploss {}".format(self.currentDate))
-                
+                elif toBuy == "Sell":
+                    if len(self.openTrades) > 0:
+                        if self.trades[-1].volume >= 0:
+                            self.closeLong(-1);
+                    else:
+                        amountToSell = (self.balance-10) / (self.currentPrice * (1+self.fee))
+                        self.openShort(amountToSell)
+
             if self.trial == 0 :
                 self.functions.mysql_conn.storePredictions(self.currentDateOrig, self.period, predictions)
                 
+    def openLong(self, amt):
+        fee = amt * self.currentPrice * self.fee
+        if (self.balance >= fee + amt * self.currentPrice + 10) and (fee + amt * self.currentPrice + 10) > self.origBalance * 0.02:
+            stoplossn = self.currentPrice * (1-self.stoploss)
+            self.balance -= (amt * self.currentPrice + fee)
+            self.trades.append((BotTrade(self.functions, self.currentDateOrig, amt, self.currentPrice,len(self.trades),stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
+                
+    def closeLong(self, tradeId):
+        if self.trades[tradeId].status != "CLOSED":
+            self.balance += self.trades[tradeId].volume * self.currentPrice
+            self.trades[tradeId].close(self.currentDateOrig, self.currentPrice, "Sell indicator")
+
+    def openShort(self, amt):
+        fee = amt * self.currentPrice * self.fee
+        if (self.balance >= fee + amt * self.currentPrice + 10) and (fee + amt * self.currentPrice + 10) > self.origBalance * 0.02:
+            stoplossn = self.currentPrice * (1+self.stoploss)
+            self.balance += (amt * self.currentPrice - fee)
+            self.trades.append((BotTrade(self.functions, self.currentDateOrig, -1*amt, self.currentPrice,len(self.trades),stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
+                
+    def closeShort(self, tradeId):
+        if self.trades[tradeId].status != "CLOSED":
+            self.balance += self.trades[tradeId].volume * self.currentPrice
+            self.trades[tradeId].close(self.currentDateOrig, self.currentPrice, "Buy indicator")
             
                         
             
