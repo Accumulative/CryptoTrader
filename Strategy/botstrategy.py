@@ -17,6 +17,7 @@ class BotStrategy(object):
         self.closes = [] # Needed for Momentum Indicator
         self.trades = []
         self.currentPrice = 0
+        self.startDate = ""
         self.currentDate = ""
         self.currentClose = ""
         self.functions = functions
@@ -28,7 +29,7 @@ class BotStrategy(object):
         self.indicators = BotIndicators()
         self.trained_model = trained_model
 
-        self.dirty = False
+        self.dirty = True
         self.fee = 0.0025
         self.strat = strat
         
@@ -67,8 +68,6 @@ class BotStrategy(object):
             self.currentPrice = float(candlestick['last'])
         self.prices.append(self.currentPrice)#
         
-        if self.startPrice == 0:
-            self.startPrice = self.currentPrice
         
         self.prices = self.prices[-self.learnProgTotal-10:]
         
@@ -77,6 +76,9 @@ class BotStrategy(object):
         self.currentDateOrig = int(candlestick['date'])
         self.currentDate = datetime.datetime.fromtimestamp(int(candlestick['date'])).strftime('%Y-%m-%d %H:%M:%S')
         
+        if self.startPrice == 0:
+            self.startPrice = self.currentPrice
+            self.startDate = self.currentDateOrig
         
         self.indicators.doDataPoints(self.currentPrice, self.currentDate)
         
@@ -95,11 +97,21 @@ class BotStrategy(object):
         if not training:
             self.updateOpenTrades()
             if self.dirty and self.trial == 0:
-                self.showAllTrades()
+                # self.showAllTrades()
                 self.dirty = False
+                totalAssets, totalFees, totalTime = self.calculateCurrentPosition()
+                stats = { "balance" : self.balance, 
+                          "assets"  : totalAssets,
+                          "fees"    : totalFees,
+                    "running_time"  : int(self.currentDateOrig) - int(self.startDate),
+                    "time_in_market": totalTime
+                        }
+                self.functions.mysql_conn.storeStatistics(stats);
 
     def evaluatePositions(self, training):
-        changeCheck= self.trades.copy()
+        changeCheckTrades = self.trades.copy()
+        changeCheckBal = self.balance
+
         self.openTrades = []
         for trade in self.trades:
             if (trade.status == "OPEN"):
@@ -115,7 +127,7 @@ class BotStrategy(object):
             self.LearnPatterns(training)
             
         
-        if changeCheck != self.trades:
+        if changeCheckTrades != self.trades or self.balance != changeCheckBal:
             self.dirty = True
                 
                 
@@ -123,7 +135,7 @@ class BotStrategy(object):
         if (self.stoploss != 0):
 #                print("2", trade.id , self.currentPrice, trade.stopLoss)
             if (self.currentPrice < trade.stopLoss ):
-                self.trades[trade.id].close(self.currentDate, self.currentPrice, "Stoploss")
+                self.trades[trade.id].close(self.currentDateOrig, self.currentPrice, "Stoploss")
                 self.balance += trade.volume * self.currentPrice
                 self.stoploss_day_count = self.stoploss_day_count_set
                 
@@ -153,7 +165,16 @@ class BotStrategy(object):
                 self.balance += trade.volume * self.currentPrice
         self.showAllTrades()
         
-   
+    def calculateCurrentPosition(self):
+        totalAssets = 0
+        totalFees = 0
+        totalTime = 0
+        for trade in self.trades:
+           totalAssets += self.currentPrice * trade.volume
+           totalFees += trade.fee
+           totalTime += (int(self.currentDateOrig) - int(trade.dateOpened) if trade.dateClosed == "" else int(trade.dateClosed) - int(trade.dateOpened))
+        return totalAssets, totalFees, totalTime
+
     def calculateTotalProft(self):
        totalProfit = self.balance
        totalFees = 0
@@ -242,9 +263,7 @@ class BotStrategy(object):
     def LearnPatterns(self, training):
         
         toBuy, predictions = self.trained_model.calc(self.prices)
-        print(training, toBuy);
         if not training:
-            self.functions.mysql_conn.storePredictions(self.currentDateOrig, self.period, predictions)
             for trade in self.openTrades:
                 # if trade.expiry != 0:
                     # if trade.age >= trade.expiry:
@@ -261,17 +280,19 @@ class BotStrategy(object):
                     stoplossn = self.currentPrice * (1-self.stoploss)
                         
                     self.balance -= (amountToBuy * self.currentPrice + fee)
-                    self.trades.append((BotTrade(self.functions, self.currentDate, amountToBuy, self.currentPrice,len(self.trades),stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
+                    self.trades.append((BotTrade(self.functions, self.currentDateOrig, amountToBuy, self.currentPrice,len(self.trades),stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))
                     
                     
             elif toBuy == "Sell"and len(self.trades) > 0:
                 if self.trades[-1].status != "CLOSED":
                     self.balance += self.trades[-1].volume * self.currentPrice
                     #print(self.balance, self.trades[-1].volume, self.currentPrice, '', self.trades[-1].id)
-                    self.trades[-1].close(self.currentDate, self.currentPrice, "Sell indicator")
+                    self.trades[-1].close(self.currentDateOrig, self.currentPrice, "Sell indicator")
             # elif not (self.stoploss_day_count == 0 or self.stoploss_day_count_set != 0):
             #     print("waiting for stoploss {}".format(self.currentDate))
                 
+            if self.trial == 0 :
+                self.functions.mysql_conn.storePredictions(self.currentDateOrig, self.period, predictions)
                 
             
                         

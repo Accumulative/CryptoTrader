@@ -68,6 +68,26 @@ class mysql_database(object):
             cur.close()
         return result[0]
     
+    def getStatistics(self):
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM statistics")
+        cur.close()
+        return cur
+    
+    def storeStatistics(self, stats):
+        cur = self.conn.cursor()
+        try:
+            for key, val in stats.items():
+                sql = """INSERT INTO statistics (name,value) 
+                        VALUES ('{0}', '{1}') 
+                            ON DUPLICATE KEY UPDATE value='{1}';          
+                    """.format(key, val);
+        
+                cur.execute(sql)  
+        finally:
+            self.conn.commit()
+            cur.close()
+
     def getAllParameters(self):
         cur = self.conn.cursor()
         cur.execute("SELECT * FROM parameters")
