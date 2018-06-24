@@ -6,10 +6,12 @@ Created on Sat Jun  9 17:09:56 2018
 @author: kieranburke
 """
 import sys
-sys.path.append("Loggers")
+sys.path.append("Helpers")
+sys.path.append("../Loggers")
 import yaml
 import pymysql
 import datetime
+from datehelper import DateHelper
 
 class mysql_database(object):
     def __init__(self):
@@ -47,7 +49,7 @@ class mysql_database(object):
 
     def closeTrade(self, trade):
         cur = self.conn.cursor()
-        sql = "UPDATE trades SET close_price='{}', close_date='{:%Y-%m-%d %H:%M:%S}' where id={}".format(trade.exitPrice, trade.dateClosed, trade.externalId)
+        sql = "UPDATE trades SET close_price='{}', close_date='{:%Y-%m-%d %H:%M:%S}' where id={}".format(trade.exitPrice, DateHelper.dt(trade.dateClosed), trade.externalId)
         cur.execute(sql)
         self.conn.commit()
         cur.close()
@@ -57,8 +59,7 @@ class mysql_database(object):
         result = ''
         try:
             cur = self.conn.cursor()
-            sql = "INSERT INTO trades (open_date, open_price, buy) VALUES ('{:%Y-%m-%d %H:%M:%S}', '{}', '{}');"\
-                .format(trade.dateOpened, trade.entryPrice, 1 if trade.volume >=0 else 0)
+            sql = "INSERT INTO trades (open_date, open_price, amount) VALUES ('{:%Y-%m-%d %H:%M:%S}', '{}', '{}');".format(DateHelper.dt(trade.dateOpened), trade.entryPrice, trade.volume)
             cur.execute(sql)
             self.conn.commit()
             sql = "SELECT LAST_INSERT_ID();"

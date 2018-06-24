@@ -3,7 +3,7 @@ CryptoTrader
 |    Parameter   | Default  | Description                                                                         | Strategies |
 |:--------------:|----------|-------------------------------------------------------------------------------------|------------|
 | lookback       | 7        | The pattern size for matching                                                       |            |
-| learnProgTotal | 500      | The total learning that should be done before trading can start.                    |            |
+| learnProgTotal | 1400      | The total learning that should be done before trading can start.                    |            |
 | advance        | 5        | How far ahead should be looked ahead for future outcomes                            |            |
 | howSimReq      | 0.95     | How similar patterns should be to be considered a match. (0-1)                      |            |
 | learnLimit     | 700      | The max number of learned patterns the program should keep in memory                |            |

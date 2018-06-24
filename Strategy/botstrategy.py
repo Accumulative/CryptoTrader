@@ -292,7 +292,7 @@ class BotStrategy(object):
                 
     def openLong(self, amt):
         fee = amt * self.currentPrice * self.fee
-        if (self.balance >= fee + amt * self.currentPrice + 10) and (fee + amt * self.currentPrice + 10) > self.origBalance * 0.02:
+        if (self.balance >= fee + amt * self.currentPrice) and (fee + amt * self.currentPrice) > self.origBalance * 0.02:
             stoplossn = self.currentPrice * (1-self.stoploss)
             self.balance -= (amt * self.currentPrice + fee)
             self.trades.append((BotTrade(self.functions, self.currentDateOrig, amt, self.currentPrice,len(self.trades),stopLoss=stoplossn, fee=fee, expiry = self.advance, log=self.trial)))

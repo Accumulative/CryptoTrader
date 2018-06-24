@@ -173,7 +173,7 @@ def main(argv):
 #==============================================================================
 #        trialDetails = [['trailingstop',0,0.3,0.15],['maFactor',1,1.05,0.025],['lowMA',15,17,1],['highMA',35,55,10]]
         # trialDetails= [['stoplossDayCount', 0*86400/period, 30*86400/period, 5*86400/period],['stoploss', 0, 0.25, 0.05]]
-        trialDetails= [['howSimReq', 0.6,1,0.01],['lookback-mc', 6,15,1]]
+        trialDetails= [['howSimReq', 0.87,0.87,0.01],['lookback-mc', 9,9,1]]
 #        trialDetails = [['highRSI',60,80,2],['lowRSI',20,40,2],['stoploss',0,0.4,0.04],['rsiperiod',10,20,2]]
 #        trialDetails = [['upfactor',1,1.1,0.02],['downfactor',1,1.1,0.02],['lookback',28,40,1]]
         
@@ -208,7 +208,7 @@ def main(argv):
         functions.mysql_conn.storeAllParameters(param_to_store);
         if(strat == "4"):
             print("Pretraining STARTED")
-            learnProgTotal = 500 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
+            learnProgTotal = 1400 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
             if(endTime == ""):
                 endTime = DateHelper.ut(datetime.datetime.now())
             if(startTime == ""):
@@ -226,7 +226,7 @@ def main(argv):
         strategy = BotStrategy(period, functions,totalBalance,0, strategyDetails, strat, trained_mcl)
         
         if strat == "4":
-            for index, candlestick  in trainingSet[-lookback-2:].iterrows():
+            for index, candlestick  in trainingSet[-lookback-1:].iterrows():
                 strategy.tick(candlestick, True)
 
         while True:
