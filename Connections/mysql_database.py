@@ -15,8 +15,10 @@ from datehelper import DateHelper
 
 class mysql_database(object):
     def __init__(self):
-        db_config = yaml.load(open('config.yml'))['mysql']
-        self.conn = pymysql.connect(host=db_config['host'], port=db_config['port'], user=db_config['username'], passwd=db_config['password'], db=db_config['database'])
+        self.db_config = yaml.load(open('config.yml'))['mysql']
+
+    def connection(self):
+        return pymysql.connect(host=self.db_config['host'], port=self.db_config['port'], user=self.db_config['username'], passwd=self.db_config['password'], db=self.db_config['database'])
 
     def round_to_hour(self, dt):
         dt_start_of_hour = dt.replace(minute=0, second=0, microsecond=0)
@@ -32,51 +34,62 @@ class mysql_database(object):
         return dt
 
     def getAllTrades(self):
-        cur = self.conn.cursor()
+        conn = self.connection()
+        cur = conn.cursor()
         cur.execute("SELECT * FROM trades")
         cur.close()
+        conn.close()
         return cur
 
     def getTradeById(self, id):
         result = ''
         try:
-            cur = self.conn.cursor()
+            conn = self.connection()
+            cur = conn.cursor()
             cur.execute("SELECT * FROM trades where id={}".format(id))
             result = cur.fetchone()
         finally:
             cur.close()
+            conn.close()
         return result
 
     def closeTrade(self, trade):
-        cur = self.conn.cursor()
+        conn = self.connection()
+        cur = conn.cursor()
         sql = "UPDATE trades SET close_price='{}', close_date='{:%Y-%m-%d %H:%M:%S}' where id={}".format(trade.exitPrice, DateHelper.dt(trade.dateClosed), trade.externalId)
         cur.execute(sql)
-        self.conn.commit()
+        conn.commit()
         cur.close()
+        conn.close()
         return cur 
 
     def createTrade(self, trade):
         result = ''
         try:
-            cur = self.conn.cursor()
+            conn = self.connection()
+            cur = conn.cursor()
             sql = "INSERT INTO trades (open_date, open_price, amount) VALUES ('{:%Y-%m-%d %H:%M:%S}', '{}', '{}');".format(DateHelper.dt(trade.dateOpened), trade.entryPrice, trade.volume)
             cur.execute(sql)
-            self.conn.commit()
+            conn.commit()
             sql = "SELECT LAST_INSERT_ID();"
             cur.execute(sql)
             result = cur.fetchone()
         finally:
             cur.close()
+            conn.close()
         return result[0]
     
     def getStatistics(self):
-        cur = self.conn.cursor()
+        conn = self.connection()
+        cur = conn.cursor()
         cur.execute("SELECT * FROM statistics")
         cur.close()
+        conn.close()
         return cur
     
     def storeStatistics(self, stats):
-        cur = self.conn.cursor()
+        conn = self.connection()
+        cur = conn.cursor()
         try:
             for key, val in stats.items():
                 sql = """INSERT INTO statistics (name,value) 
@@ -86,19 +99,22 @@ class mysql_database(object):
         
                 cur.execute(sql)  
         finally:
-            self.conn.commit()
+            conn.commit()
             cur.close()
+            conn.close()
 
     def getAllParameters(self):
-        cur = self.conn.cursor()
+        conn = self.connection()
+        cur = conn.cursor()
         cur.execute("SELECT * FROM parameters")
         cur.close()
+        conn.close()
         return cur
     
     def storeAllParameters(self, params):
+        conn = self.connection()
         
-        
-        cur = self.conn.cursor()
+        cur = conn.cursor()
         try:
             for key, val in params.items():
                 sql = """INSERT INTO parameters (name,value,active) 
@@ -108,38 +124,37 @@ class mysql_database(object):
         
                 cur.execute(sql)  
         finally:
-            self.conn.commit()
+            conn.commit()
             cur.close()
+            conn.close()
 
     def storePredictions(self, date, period, predictions):
         if len(predictions) > 0:
-            cur = self.conn.cursor()
+            conn = self.connection()
+            cur = conn.cursor()
             try:
                 for i in range(len(predictions[0])):
                     sql = """INSERT INTO predictions (value,type,pred_date) 
                             VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
                             ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
-                        """.format(predictions[0][i], 0, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-1) * period))); # 0 is average
+                        """.format(predictions[0][i], 0, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 0 is average
             
                     cur.execute(sql)  
                 for i in range(len(predictions[1])):
                     sql = """INSERT INTO predictions (value,type,pred_date) 
                             VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
                             ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
-                        """.format(predictions[1][i], 1, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-1) * period))); # 1 is min
+                        """.format(predictions[1][i], 1, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 1 is min
             
                     cur.execute(sql)  
                 for i in range(len(predictions[2])):
                     sql = """INSERT INTO predictions (value,type,pred_date) 
                             VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
                             ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
-                        """.format(predictions[2][i], 2, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-1) * period))); # 2 is max
+                        """.format(predictions[2][i], 2, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 2 is max
             
                     cur.execute(sql)  
             finally:
-                self.conn.commit()
+                conn.commit()
                 cur.close()
-
-
-    def closeConnection(self):
-        self.conn.close()
+                conn.close()

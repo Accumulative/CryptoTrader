@@ -93,7 +93,9 @@ class maclearn(object):
             maxGuess = np.amax([maxGuess, pred], axis=0)
         matches = len(np.array(self.resultAr)[mask])
         guess = np.divide(guess, matches)
-        return res_tracker, [guess, minGuess, maxGuess]
+        if matches > 0:
+            return res_tracker, [guess, minGuess, maxGuess]
+        return res_tracker, []
         
     def patternStorage(self,prices):
         

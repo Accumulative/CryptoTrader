@@ -76,7 +76,7 @@ class BotStrategy(object):
         self.currentDateOrig = int(candlestick['date'])
         self.currentDate = datetime.datetime.fromtimestamp(int(candlestick['date'])).strftime('%Y-%m-%d %H:%M:%S')
         
-        if self.startPrice == 0:
+        if self.startPrice == 0 and not training:
             self.startPrice = self.currentPrice
             self.startDate = self.currentDateOrig
         
