@@ -45,6 +45,7 @@ chart = ""
 now = 0
 mcl = ""
 trained_mcl = ""
+cont = False
 chartData = []
 
 def trial(toPerform, curr):
@@ -120,6 +121,7 @@ def main(argv):
     global environment
     global chart
     global strat
+    global cont
     global trained_mcl
     output.log("------------STARTING BACKTESTER------------")
     
@@ -127,8 +129,11 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"hp:c:s:e:b:v:u:l:",["period=","currency="])
     except getopt.GetoptError:
-        print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment> -l <live>')
-        sys.exit(2)
+        try:
+            opts, args = getopt.getopt(argv,"r")
+        except: 
+            print('backtest.py -p <period length> -c <currency pair> -s <start time> -e <end time> -u <strategy> -b <balance> -v <environment> -l <live>')
+            sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':
@@ -142,6 +147,8 @@ def main(argv):
                 sys.exit(2)
         elif opt in ("-s"):
             startTime = DateHelper.ut(datetime.datetime.strptime(arg, '%d/%m/%Y')) if "/" in arg else arg
+        elif opt in ("-r"):
+            cont = True
         elif opt in ("-v"):
             environment = arg
         elif opt in ("-e"):
@@ -166,7 +173,7 @@ def main(argv):
 #    Instanstiate GUI for results
     createIndex = CreateIndex(environment)
     
-    if not liveTrading:
+    if not liveTrading and cont == False:
           
 #==============================================================================
 #             [factor, lower limit, higher limit, step] is the format
@@ -198,14 +205,32 @@ def main(argv):
         
         createIndex.CreatePages()
     else:
-        chart = BotChart(functions,pair)
-        strategyDetails = {'howSimReq':0.9, "lookback-mc": 7 }
         
-        param_to_store = strategyDetails
-        param_to_store['strategy'] = strat;
-        param_to_store['pair'] = pair;
-        param_to_store['period'] = period;
-        functions.mysql_conn.storeAllParameters(param_to_store);
+        trades = []
+        if cont == False:
+            strategyDetails = {'howSimReq':0.9, "lookback-mc": 7 }
+            param_to_store = strategyDetails
+            param_to_store['strategy'] = strat;
+            param_to_store['pair'] = pair;
+            param_to_store['period'] = period;
+            functions.mysql_conn.storeAllParameters(param_to_store);
+        else: 
+            
+            strategyDetails = functions.mysql_conn.getAllParameters();
+            stats = functions.mysql_conn.getStatistics()
+            totalBalance = stats['balance'];
+            trades = functions.mysql_conn.getAllOpenTrades()
+            strat = strategyDetails['strategy']
+            pair = strategyDetails['pair']
+            period = int(strategyDetails['period'])
+            del strategyDetails['strategy']
+            del strategyDetails['pair']
+            del strategyDetails['period']
+            if 'running_time' in stats:
+                strategyDetails['running_time'] = stats['running_time']
+            print(strategyDetails)
+        
+        chart = BotChart(functions,pair)
         if(strat == "4"):
             print("Pretraining STARTED")
             learnProgTotal = 1400 if not 'learnProgTotal' in strategyDetails else strategyDetails['learnProgTotal']
@@ -218,18 +243,24 @@ def main(argv):
             trainingSet = chart.getPoints()
             mcl = MachineStrat(strat, strategyDetails)
             trained_mcl = mcl.train(trainingSet["weightedAverage"][:learnProgTotal+30])
-            lookback = 7 if not 'lookback-mc' in strategyDetails else strategyDetails['lookback-mc']
+            lookback = 7 if not 'lookback-mc' in strategyDetails else int(strategyDetails['lookback-mc'])
             
 
             print("Pretraining finished")
             
-        strategy = BotStrategy(period, functions,totalBalance,0, strategyDetails, strat, trained_mcl)
+        strategy = BotStrategy(period, functions,totalBalance,0, strategyDetails, strat, trained_mcl, trades)
         
         if strat == "4":
             for index, candlestick  in trainingSet[-lookback-1:].iterrows():
                 strategy.tick(candlestick, True)
 
         while True:
+            date = datetime.datetime.now()
+            while ((date.hour % 4 == 1 and date.minute > 30) and (date.hour % 4 == 2 and date.minute < 25)) == False:
+                date = datetime.datetime.now()
+                print('checking for appropriate start time', date)
+                time.sleep(60 * 5)
+                
             start = time.time()
             currTick = dict(chart.getNext())
             currTick['date'] = str(DateHelper.ut(datetime.datetime.now()))

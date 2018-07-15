@@ -6,32 +6,23 @@ Created on Sat Jun  9 17:09:56 2018
 @author: kieranburke
 """
 import sys
-sys.path.append("Helpers")
+sys.path.append("../Helpers")
 sys.path.append("../Loggers")
+sys.path.append("../Models")
 import yaml
 import pymysql
 import datetime
 from datehelper import DateHelper
+from bottrade import BotTrade
 
 class mysql_database(object):
-    def __init__(self):
+    def __init__(self, parent):
         self.db_config = yaml.load(open('config.yml'))['mysql']
+        self.parent = parent
 
     def connection(self):
         return pymysql.connect(host=self.db_config['host'], port=self.db_config['port'], user=self.db_config['username'], passwd=self.db_config['password'], db=self.db_config['database'])
 
-    def round_to_hour(self, dt):
-        dt_start_of_hour = dt.replace(minute=0, second=0, microsecond=0)
-        dt_half_hour = dt.replace(minute=30, second=0, microsecond=0)
-
-        if dt >= dt_half_hour:
-            # round up
-            dt = dt_start_of_hour + datetime.timedelta(hours=1)
-        else:
-            # round down
-            dt = dt_start_of_hour
-
-        return dt
 
     def getAllTrades(self):
         conn = self.connection()
@@ -40,6 +31,21 @@ class mysql_database(object):
         cur.close()
         conn.close()
         return cur
+
+    def getAllOpenTrades(self):
+        conn = self.connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM trades where close_date is NULL")
+        cur.close()
+        conn.close()
+        
+        output = []
+        for r in cur:
+            trade = BotTrade(self.parent,0,0 if r[3] is None else float(r[3]), 0 if r[1] is None else float(r[1]), 0, 0, r[6], 0, 1)
+            trade.externalId = r[0]
+            output.append(trade);
+        
+        return output
 
     def getTradeById(self, id):
         result = ''
@@ -68,7 +74,7 @@ class mysql_database(object):
         try:
             conn = self.connection()
             cur = conn.cursor()
-            sql = "INSERT INTO trades (open_date, open_price, amount) VALUES ('{:%Y-%m-%d %H:%M:%S}', '{}', '{}');".format(DateHelper.dt(trade.dateOpened), trade.entryPrice, trade.volume)
+            sql = "INSERT INTO trades (open_date, open_price, amount, fee) VALUES ('{:%Y-%m-%d %H:%M:%S}', '{}', '{}', '{}');".format(DateHelper.dt(trade.dateOpened), trade.entryPrice, trade.volume, trade.fee)
             cur.execute(sql)
             conn.commit()
             sql = "SELECT LAST_INSERT_ID();"
@@ -85,7 +91,12 @@ class mysql_database(object):
         cur.execute("SELECT * FROM statistics")
         cur.close()
         conn.close()
-        return cur
+        
+        data = {}
+        for r in cur:
+            data[r[1]] = float(r[2])
+        
+        return data
     
     def storeStatistics(self, stats):
         conn = self.connection()
@@ -109,7 +120,12 @@ class mysql_database(object):
         cur.execute("SELECT * FROM parameters")
         cur.close()
         conn.close()
-        return cur
+        
+        data = {}
+        for r in cur:
+            data[r[1]] = str(r[2])
+        
+        return data
     
     def storeAllParameters(self, params):
         conn = self.connection()
@@ -137,21 +153,21 @@ class mysql_database(object):
                     sql = """INSERT INTO predictions (value,type,pred_date) 
                             VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
                             ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
-                        """.format(predictions[0][i], 0, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 0 is average
+                        """.format(predictions[0][i], 0, DateHelper.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 0 is average
             
                     cur.execute(sql)  
                 for i in range(len(predictions[1])):
                     sql = """INSERT INTO predictions (value,type,pred_date) 
                             VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
                             ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
-                        """.format(predictions[1][i], 1, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 1 is min
+                        """.format(predictions[1][i], 1, DateHelper.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 1 is min
             
                     cur.execute(sql)  
                 for i in range(len(predictions[2])):
                     sql = """INSERT INTO predictions (value,type,pred_date) 
                             VALUES ('{0}', '{1}', '{2:%Y-%m-%d %H:%M:%S}') 
                             ON DUPLICATE KEY UPDATE prev_val=value, value='{0}';          
-                        """.format(predictions[2][i], 2, self.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 2 is max
+                        """.format(predictions[2][i], 2, DateHelper.round_to_hour(datetime.datetime.fromtimestamp(date + (i-2) * period))); # 2 is max
             
                     cur.execute(sql)  
             finally:

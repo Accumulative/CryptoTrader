@@ -14,6 +14,6 @@ from ifttt import ifttt
 class BotFunctions():
     def __init__(self):
         self.poloniex_conn = poloniex_functions()
-        self.mysql_conn = mysql_database()
+        self.mysql_conn = mysql_database(self)
         self.ifttt_conn = ifttt()
         

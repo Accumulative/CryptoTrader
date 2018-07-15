@@ -9,13 +9,13 @@ import datetime
 from botaccount import BotAccount
 
 class BotStrategy(object):
-    def __init__(self, period, functions, balance, trial, details, strat, trained_model=""):
+    def __init__(self, period, functions, balance, trial, details, strat, trained_model="", defTrades = []):
         self.output = BotLog()
         self.prices = []
         self.period = period
         self.startPrice = 0
         self.closes = [] # Needed for Momentum Indicator
-        self.trades = []
+        self.trades = defTrades
         self.currentPrice = 0
         self.startDate = ""
         self.currentDate = ""
@@ -33,7 +33,7 @@ class BotStrategy(object):
         self.fee = 0.0025
         self.strat = strat
         
-        self.lookback = 7 if not 'lookback' in details else details['lookback']
+        self.lookback = 7 if not 'lookback' in details else int(details['lookback'])
         
         self.trial = trial
         
@@ -44,20 +44,30 @@ class BotStrategy(object):
         self.lowMA = 28 if not 'lowMA' in details else details['lowMA']
         self.mamultfactor = 1 if not 'maFactor' in details else details['maFactor']
         self.numSimulTrades = 1 if not 'simTrades' in details else details['simTrades']
-        self.stoploss = 0 if not 'stoploss' in details else details['stoploss']
-        self.advance = 13 if not 'advance' in details else details['advance']
+        self.stoploss = 0 if not 'stoploss' in details else float(details['stoploss'])
+        self.advance = 13 if not 'advance' in details else int(details['advance'])
         
         self.lowrsi = 30 if not 'lowrsi' in details else details['lowrsi']
         self.highrsi = 70 if not 'highrsi' in details else details['highrsi']
         self.rsiperiod = 14 if not 'rsiperiod' in details else details['rsiperiod']
-        self.learnProgTotal = 1400 if not 'learnProgTotal' in details else details['learnProgTotal']
+        self.learnProgTotal = 1400 if not 'learnProgTotal' in details else int(details['learnProgTotal'])
         
         self.upfactor = 1.1 if not 'upfactor' in details else details['upfactor']
         self.downfactor = 1.3 if not 'downfactor' in details else details['downfactor']
         self.trailingstop = 0.1 if not 'trailingstop' in details else details['trailingstop']
 
+        self.prev_run_time = 0 if not 'running_time' in details else int(details['running_time'])
+
         self.stoploss_day_count = 0
-        self.stoploss_day_count_set = 0 if not 'stoplossDayCount' in details else details['stoplossDayCount']        
+        self.stoploss_day_count_set = 0 if not 'stoplossDayCount' in details else details['stoplossDayCount']    
+        
+        
+        # initiate any trades left over from last time
+        for trade in self.trades:
+            trade.stopLoss = trade.entryPrice * (1-self.stoploss)
+            if '4' in self.strat:
+                trade.expiry = self.advance
+            trade.log = self.trial
         
     def tick(self,candlestick, training=False):
         if not self.trial == 0 or training:
@@ -102,9 +112,7 @@ class BotStrategy(object):
                 totalAssets, totalFees, totalTime, _ = self.calculateCurrentPosition()
                 stats = { "balance" : self.balance, 
                           "assets"  : totalAssets,
-                          "fees"    : totalFees,
-                    "running_time"  : int(self.currentDateOrig) - int(self.startDate),
-                    "time_in_market": totalTime
+                    "running_time"  : self.prev_run_time + int(self.currentDateOrig) - int(self.startDate)
                         }
                 self.functions.mysql_conn.storeStatistics(stats);
 
