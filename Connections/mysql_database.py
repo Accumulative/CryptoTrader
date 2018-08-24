@@ -41,7 +41,7 @@ class mysql_database(object):
         
         output = []
         for r in cur:
-            trade = BotTrade(self.parent,0,0 if r[3] is None else float(r[3]), 0 if r[1] is None else float(r[1]), 0, 0, r[6], 0, 1)
+            trade = BotTrade(self.parent,0,0 if r[3] is None else float(r[3]), 0 if r[1] is None else float(r[1]), 0, 0, float(r[6]), 0, 1)
             trade.externalId = r[0]
             output.append(trade);
         

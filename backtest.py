@@ -256,7 +256,7 @@ def main(argv):
 
         while True:
             date = datetime.datetime.now()
-            while ((date.hour % 4 == 1 and date.minute > 30) and (date.hour % 4 == 2 and date.minute < 25)) == False:
+            while ((date.hour % 4 == 0 and date.minute > 30) or (date.hour % 4 == 1 and date.minute < 25)) == False:
                 date = datetime.datetime.now()
                 print('checking for appropriate start time', date)
                 time.sleep(60 * 5)
